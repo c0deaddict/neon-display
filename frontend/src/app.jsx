@@ -1,5 +1,5 @@
-import * as React from 'react'
-import * as ReactDOM from 'react-dom'
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 
 function calculateWinner(squares) {
   const lines = [
@@ -19,7 +19,7 @@ function calculateWinner(squares) {
     }
   }
   return null;
-}  
+}
 
 function Square(props) {
   return (
@@ -40,9 +40,9 @@ class Board extends React.Component {
 
   renderSquare(i) {
     return <Square
-             value={this.state.squares[i]}
-             onClick={() => this.handleClick(i)}
-           />;
+      value={this.state.squares[i]}
+      onClick={() => this.handleClick(i)}
+    />;
   }
 
   handleClick(i) {
@@ -89,7 +89,23 @@ class Board extends React.Component {
   }
 }
 
+const client = new WebSocket('ws://127.0.0.1:4000/ws');
+
 class Game extends React.Component {
+  componentWillMount() {
+    client.onopen = () => {
+      console.log('WebSocket client connected');
+    };
+
+    client.onmessage = (message) => {
+      console.log(message);
+    };
+
+    setInterval(() => {
+      client.send("ping");
+    }, 5000);
+  }
+
   render() {
     return (
       <div className="game">

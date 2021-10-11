@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/websocket"
 	"github.com/stianeikeland/go-rpio/v4"
 
 	"github.com/c0deaddict/neon-display/frontend"
@@ -39,16 +41,41 @@ func main() {
 	fileServer := http.FileServer(http.FS(fsys))
 	// fileServer := http.FileServer(http.Dir("frontend/dist"))
 	// TODO: add websocket for comm.
+	// TODO: add logging for http requests
 	mux.Handle("/", fileServer)
 	// Handle all other requests
-	mux.HandleFunc("/ws", func(w http.ResponseWriter, req *http.Request) {
-		var path = req.URL.Path
-		log.Println("Serving request for path", path)
-		w.Header().Add("Content-Type", "text/plain")
-		w.Write([]byte("hello"))
-	})
-	err = http.ListenAndServe(":4000", mux)
+	mux.HandleFunc("/ws", websocketHandler)
+	err = http.ListenAndServe(":4000", handlers.LoggingHandler(os.Stdout, mux))
 	log.Fatalln(err)
+}
+
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{}
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		return true
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error during connection upgrade:", err)
+		return
+	}
+	defer conn.Close()
+
+	for {
+		messageType, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			break
+		} else {
+			log.Println(messageType, message)
+		}
+
+		err = conn.WriteMessage(websocket.TextMessage, []byte("hello"))
+		if err != nil {
+			log.Println(err)
+			break
+		}
+	}
 }
 
 func test() {
