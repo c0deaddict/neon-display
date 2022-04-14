@@ -1,6 +1,14 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
+// idea: compose one or more widgets on screen.
+//
+// react widget:
+// - iframe (grafana dashboard, weather etc.)
+// - photo slideshow
+// - do something with the leds ?
+// - ??
+
 function calculateWinner(squares) {
   const lines = [
     [0, 1, 2],

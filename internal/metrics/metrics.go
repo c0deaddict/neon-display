@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var exporterListen = flag.String("exporter-listen", ":9995", "Prometheus exporter listen address")
+var exporterListen = flag.String("exporter-listen", ":9989", "Prometheus exporter listen address")
 
 func Run() {
 	http.Handle("/metrics", promhttp.Handler())

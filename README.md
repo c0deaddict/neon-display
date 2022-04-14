@@ -1,5 +1,7 @@
 # Neon Display
 
+-- Use `firefox -kiosk URL` instead of Chromium.
+
 ## Hardware
 Neon is a Raspberry Pi attached to a monitor for displaying photos, graphs, etc.
 
@@ -48,14 +50,6 @@ tvservice --preferred && xset -dpms off
 #!/bin/sh
 xset -dpms
 xset s off
-
-exec feh --hide-pointer -x -q -D 5 -B black -Z -z -F --auto-rotate -R 5 -r /pics
-```
-
-Switching images can be done by sending a signal to feh:
-```
-SIGUSR1  Switch to next image
-SIGUSR2  Switch to previous image
 ```
 
 ## Improvements
@@ -66,19 +60,22 @@ SIGUSR2  Switch to previous image
 
 ## Setup
 
-```sh
-cd controller
-pip3 install -r requirements.txt
+### LEDS
+
+https://github.com/jgarff/rpi_ws281x
+
+/etc/modprobe.d/snd-blacklist.conf:
+
+```
+blacklist snd_bcm2835
 ```
 
-# Autologin
+Clone the git repo and install `scons`, then:
 
-```txt
-sudo raspi-config
-boot options
-desktop/cli
-console, automatically login as user pi
+```
+scons
+cp *.a /usr/local/lib/
+cp *.h /usr/local/include/
 ```
 
-This will run `/home/pi/.profile` after boot, which will `startx`, which will
-execute our `.xinitrc`.
+Now the go app can be build on the Pi.
