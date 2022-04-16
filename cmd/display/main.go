@@ -10,7 +10,11 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/c0deaddict/neon-display/internal/metrics"
+	"github.com/c0deaddict/neon-display/display"
+)
+
+var (
+	halSocketPath = flag.String("hal-socket-path", "/run/neon-display/hal.sock", "HAL unix domain socket path")
 )
 
 func main() {
@@ -21,5 +25,8 @@ func main() {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
-	go metrics.Run()
+	d := display.Display{
+		HalSocketPath: *halSocketPath,
+	}
+	d.Run()
 }

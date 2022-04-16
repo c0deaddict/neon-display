@@ -5,28 +5,44 @@ import (
 	"log"
 
 	"net/http"
-	"os"
 
-	"github.com/gorilla/handlers"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/c0deaddict/neon-display/frontend"
 )
 
-func StartWebsocket() {
-	mux := http.NewServeMux()
+func prometheusHandler() gin.HandlerFunc {
+	h := promhttp.Handler()
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+func (d *Display) StartWebsocket() {
 	fsys, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fileServer := http.FileServer(http.FS(fsys))
-	// fileServer := http.FileServer(http.Dir("frontend/dist"))
-	mux.Handle("/", fileServer)
-	// TODO: file server for photos on /photo ?
-	// Handle all other requests
-	mux.HandleFunc("/ws", websocketHandler)
-	err = http.ListenAndServe(":4000", handlers.LoggingHandler(os.Stdout, mux))
-	log.Fatalln(err)
+
+	r := gin.Default()
+
+	r.StaticFS("/photo", http.Dir("./photos")) // TODO: configurable photo dir
+	r.GET("/ws", func(c *gin.Context) {
+		websocketHandler(c.Writer, c.Request)
+	})
+	r.GET("/metrics", prometheusHandler())
+	r.NoRoute(func(c *gin.Context) {
+		c.FileFromFS(c.Request.URL.Path, http.FS(fsys))
+	})
+
+	err = r.Run() // listen and serve on 0.0.0.0:8080
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 }
 
 func websocketHandler(w http.ResponseWriter, r *http.Request) {

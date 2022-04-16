@@ -1,4 +1,4 @@
-package leds
+package hal
 
 import (
 	"time"
@@ -47,7 +47,7 @@ func (cw *colorWipe) display(color uint32) error {
 	return nil
 }
 
-func DoLeds() {
+func doLeds() {
 	opt := ws2811.DefaultOptions
 	opt.Channels[0].Brightness = brightness
 	opt.Channels[0].LedCount = ledCounts

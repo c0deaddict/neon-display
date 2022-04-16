@@ -1,4 +1,4 @@
-package display
+package hal
 
 import "os/exec"
 

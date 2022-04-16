@@ -97,7 +97,9 @@ class Board extends React.Component {
   }
 }
 
-const client = new WebSocket('ws://127.0.0.1:4000/ws');
+const url = new URL('/ws', window.location.href);
+url.protocol = url.protocol.replace('http', 'ws');
+const client = new WebSocket(url.href);
 
 class Game extends React.Component {
   componentWillMount() {

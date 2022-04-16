@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option go_package = "github.com/c0deaddict/neon-display/hal_proto";
+
+package hal_proto;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.EnumValueOptions {
+  optional string name = 50000;
+}
+
+service Hal {
+  rpc WatchEvents(google.protobuf.Empty) returns (stream Event) {}
+  rpc SetDisplayPower(DisplayPower) returns (google.protobuf.Empty) {}
+  rpc SetLedsPower(LedsPower) returns (google.protobuf.Empty) {}
+}
+
+message Event {
+  EventSource source = 1;
+  bool state = 2;
+}
+
+enum EventSource {
+    Pir = 0 [(name) = "pir"];
+    RedButton = 1 [(name) = "red_button"];
+    YellowButton = 2 [(name) = "red_button"];
+}
+
+message DisplayPower {
+  bool power = 1;
+}
+
+message LedsPower {
+  bool power = 1;
+}

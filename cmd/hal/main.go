@@ -10,9 +10,12 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/c0deaddict/neon-display/internal/gpio"
-	"github.com/c0deaddict/neon-display/internal/leds"
-	"github.com/c0deaddict/neon-display/internal/metrics"
+	"github.com/c0deaddict/neon-display/hal"
+	"github.com/c0deaddict/neon-display/hal/metrics"
+)
+
+var (
+	socketPath = flag.String("hal-socket-path", "/run/neon-display/hal.sock", "HAL unix domain socket path")
 )
 
 func main() {
@@ -25,6 +28,9 @@ func main() {
 
 	go metrics.Run()
 
-	gpio.WatchButtons()
-	leds.DoLeds()
+	h := hal.New(*socketPath)
+	err := h.Run()
+	if err != nil {
+		log.Error().Err(err).Msg("hal")
+	}
 }
