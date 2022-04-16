@@ -78,6 +78,7 @@ func watchGpios(h *Hal) *gpioWatcher {
 }
 
 func (g *gpioWatcher) Close() {
+	log.Info().Msg("closing gpio lines")
 	for _, l := range g.lines {
 		if err := l.Close(); err != nil {
 			log.Error().Err(err).Msg("close gpio line")

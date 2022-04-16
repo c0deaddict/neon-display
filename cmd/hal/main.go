@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os/signal"
+	"syscall"
 	"time"
 
 	"flag"
@@ -11,11 +13,11 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/c0deaddict/neon-display/hal"
-	"github.com/c0deaddict/neon-display/hal/metrics"
 )
 
 var (
-	socketPath = flag.String("hal-socket-path", "/run/neon-display/hal.sock", "HAL unix domain socket path")
+	socketPath     = flag.String("hal-socket-path", "/run/neon-display/hal.sock", "HAL unix domain socket path")
+	exporterListen = flag.String("exporter-listen", ":9989", "Prometheus exporter listen address")
 )
 
 func main() {
@@ -26,11 +28,17 @@ func main() {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
-	go metrics.Run()
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
-	h := hal.New(*socketPath)
-	err := h.Run()
-	if err != nil {
-		log.Error().Err(err).Msg("hal")
-	}
+	h := hal.Hal{SocketPath: *socketPath, ExporterListen: *exporterListen}
+	go func() {
+		err := h.Run()
+		if err != nil {
+			log.Error().Err(err).Msg("hal")
+		}
+	}()
+
+	<-sigs
+	h.Stop()
 }
