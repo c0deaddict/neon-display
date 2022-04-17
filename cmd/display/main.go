@@ -15,6 +15,9 @@ import (
 
 var (
 	halSocketPath = flag.String("hal-socket-path", "/run/neon-display/hal.sock", "HAL unix domain socket path")
+	webBind       = flag.String("web-bind", "127.0.0.1", "Web bind")
+	webPort       = flag.Uint("web-port", 8080, "Web port")
+	photosPath    = flag.String("photos-path", "/var/lib/neon-display/photos", "Photos used for slideshow")
 )
 
 func main() {
@@ -25,8 +28,11 @@ func main() {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
-	d := display.Display{
+	d := display.New(display.Config{
 		HalSocketPath: *halSocketPath,
-	}
+		WebBind:       *webBind,
+		WebPort:       uint16(*webPort),
+		PhotosPath:    *photosPath,
+	})
 	d.Run()
 }
