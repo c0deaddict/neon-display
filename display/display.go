@@ -31,7 +31,7 @@ type Display struct {
 	nc      *nats.Conn
 	browser *os.Process
 
-	mu      sync.Mutex // protects clients
+	mu      sync.Mutex // protects clients, also serves as WriteMessage sync.
 	clients []*websocket.Conn
 }
 

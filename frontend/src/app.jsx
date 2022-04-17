@@ -9,129 +9,53 @@ import * as ReactDOM from 'react-dom';
 // - do something with the leds ?
 // - ??
 
-function calculateWinner(squares) {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ];
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
-    }
-  }
-  return null;
-}
-
-function Square(props) {
-  return (
-    <button className="square" onClick={props.onClick}>
-      {props.value}
-    </button>
-  );
-}
-
-class Board extends React.Component {
+class App extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      squares: Array(9).fill(null),
-      xIsNext: true,
-    };
   }
 
-  renderSquare(i) {
-    return <Square
-      value={this.state.squares[i]}
-      onClick={() => this.handleClick(i)}
-    />;
-  }
+  componentDidMount() {
+    const url = new URL('/ws', window.location.href);
+    url.protocol = url.protocol.replace('http', 'ws');
 
-  handleClick(i) {
-    const squares = this.state.squares.slice();
-    if (calculateWinner(squares) || squares[i]) {
-      return;
-    }
-    squares[i] = this.state.xIsNext ? 'X' : 'O';
-    this.setState({
-      squares: squares,
-      xIsNext: !this.state.xIsNext,
-    });
-  }
-
-  render() {
-    const winner = calculateWinner(this.state.squares);
-    let status;
-    if (winner) {
-      status = 'Winner: ' + winner;
-    } else {
-      status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
-    }
-
-    return (
-      <div>
-        <div className="status">{status}</div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
-      </div>
-    );
-  }
-}
-
-const url = new URL('/ws', window.location.href);
-url.protocol = url.protocol.replace('http', 'ws');
-const client = new WebSocket(url.href);
-
-class Game extends React.Component {
-  componentWillMount() {
-    client.onopen = () => {
+    this.client = new WebSocket(url.href);
+    this.client.addEventListener('open', (event) => {
       console.log('WebSocket client connected');
-    };
+    });
+    this.client.addEventListener('message', this.handleMessage.bind(this));
 
-    client.onmessage = (message) => {
-      console.log(message);
-    };
-
-    setInterval(() => {
-      client.send("ping");
+    this.timer = setInterval(() => {
+      const id = self.crypto.randomUUID();
+      const method = "ping";
+      const params = null;
+      this.client.send(JSON.stringify({id, method, params}));
     }, 5000);
   }
 
+  componentWillUnmount() {
+    this.client.close();
+    clearInterval(this.timer);
+  }
+
+  handleMessage(message) {
+    const message = JSON.parse(message.data);
+    console.log(this, message);
+  }
+
   render() {
     return (
-      <div className="game">
-        <div className="game-board">
-          <Board />
-        </div>
-        <div className="game-info">
-          <div>{/* status */}</div>
-          <ol>{/* TODO */}</ol>
-        </div>
+      <div>
+        <div id="message"></div>
+        <div id="content">
+          <img />
+          <iframe frameBorder="0" src="" hidden></iframe>
+        </div>      
       </div>
     );
   }
 }
 
 ReactDOM.render(
-  <Game />,
+  <App />,
   document.getElementById('root')
 );

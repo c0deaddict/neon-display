@@ -1,6 +1,7 @@
 package display
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 
+	"github.com/c0deaddict/neon-display/display/ws_proto"
 	"github.com/c0deaddict/neon-display/frontend"
 )
 
@@ -71,21 +73,53 @@ func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		messageType, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Warn().Err(err).Msg("read ws message")
+		if websocket.IsCloseError(err, websocket.CloseGoingAway,
+			websocket.CloseNormalClosure,
+			websocket.CloseNoStatusReceived) {
+			log.Info().Msgf("client closed connection %p", conn)
 			break
-		} else {
-			log.Info().Msgf("received ws message: client %p type %v data %v", conn, messageType, message)
 		}
-
-		err = conn.WriteMessage(websocket.TextMessage, []byte("hello"))
 		if err != nil {
-			log.Warn().Err(err).Msg("send ws message")
+			log.Error().Err(err).Msg("read ws message")
 			break
+		}
+		if messageType == websocket.TextMessage {
+			d.handleMessage(conn, message)
+		} else {
+			log.Warn().Msgf("ignoring ws message: client %p type %v", conn, messageType)
 		}
 	}
 
 	d.removeClient(conn)
+}
+
+func (d *Display) handleMessage(conn *websocket.Conn, message []byte) {
+	log.Info().Msgf("client %p send message %s", conn, string(message))
+
+	var req ws_proto.Request
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		log.Error().Err(err).Msgf("message from client %p", conn)
+		return
+	}
+
+	resp := ws_proto.Response{
+		RequestId: req.Id,
+		Ok:        true,
+		Error:     nil,
+	}
+	msg, err := ws_proto.MakeServerMessage(ws_proto.ResponseMessage, resp)
+	if err != nil {
+		log.Error().Err(err).Msg("json marshal response message")
+		return
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	err = conn.WriteJSON(msg)
+	if err != nil {
+		log.Warn().Err(err).Msgf("send message to client %p", conn)
+	}
 }
 
 func (d *Display) addClient(conn *websocket.Conn) {
@@ -107,4 +141,18 @@ func (d *Display) removeClient(conn *websocket.Conn) {
 	}
 
 	log.Warn().Msgf("remove client: %p is not found", conn)
+}
+
+func (d *Display) broadcast(data interface{}) error {
+	d.mu.Lock() // also ensures there is no more than one websocket writer.
+	defer d.mu.Unlock()
+
+	for _, c := range d.clients {
+		err := c.WriteJSON(data)
+		if err != nil {
+			log.Warn().Err(err).Msgf("send message to client %p", c)
+		}
+	}
+
+	return nil
 }
