@@ -1,34 +1,33 @@
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-
-// idea: compose one or more widgets on screen.
-//
-// react widget:
-// - iframe (grafana dashboard, weather etc.)
-// - photo slideshow
-// - do something with the leds ?
-// - ??
+import * as React from "react";
+import * as ReactDOM from "react-dom";
+import Message from "./components/message.jsx";
+import Slideshow from "./components/slideshow.jsx";
+import Iframe from "./components/iframe.jsx";
 
 class App extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      content: null,
+      message: null,
+    };
   }
 
   componentDidMount() {
-    const url = new URL('/ws', window.location.href);
-    url.protocol = url.protocol.replace('http', 'ws');
+    const url = new URL("/ws", window.location.href);
+    url.protocol = url.protocol.replace("http", "ws");
 
     this.client = new WebSocket(url.href);
-    this.client.addEventListener('open', (event) => {
-      console.log('WebSocket client connected');
+    this.client.addEventListener("open", (event) => {
+      console.log("WebSocket client connected");
     });
-    this.client.addEventListener('message', this.handleMessage.bind(this));
+    this.client.addEventListener("message", this.handleMessage.bind(this));
 
     this.timer = setInterval(() => {
       const id = self.crypto.randomUUID();
       const method = "ping";
       const params = null;
-      this.client.send(JSON.stringify({id, method, params}));
+      this.client.send(JSON.stringify({ id, method, params }));
     }, 5000);
   }
 
@@ -37,25 +36,84 @@ class App extends React.Component {
     clearInterval(this.timer);
   }
 
-  handleMessage(message) {
-    const message = JSON.parse(message.data);
-    console.log(this, message);
+  handleMessage(wsMessage) {
+    const message = JSON.parse(wsMessage.data);
+    switch (message.type) {
+      case "command":
+        this.handleCommand(message.data);
+        break;
+
+      case "response":
+        this.handleResponse(message.data);
+        break;
+
+      default:
+        console.error("unexpected message type received:", message.type);
+    }
+  }
+
+  handleCommand(command) {
+    switch (command.type) {
+      case "start_slideshow":
+      case "stop_slideshow":
+      case "open_url":
+        break;
+
+      case "show_message":
+        this.showMessage(command.data);
+        break;
+
+      case "reload":
+        window.location.reload();
+        break;
+
+      default:
+        console.error("unexpected command received:", command.type);
+    }
+  }
+
+  startSlideshow(data) {
+    this.setState({content: {type: "slideshow", data}});
+  }
+
+  stopSlideshow() {
+    this.setState({content: null});
+  }
+
+  openUrl(data) {
+    this.setState({content: {type: "iframe", data}});
+  }
+
+  showMessage(data) {
+    console.log('showMessage', data);
+    this.setState({message: data});
+    setTimeout(() => this.setState({message: null}), data.show_seconds * 1000);
+  }
+
+  handleResponse(response) {
+    console.log("handleResponse is not implemented", response);
+  }
+
+  renderContent() {
+    if (this.state.content == null) {
+      return null;
+    } else if (this.state.content.type == "slideshow") {
+      return <Slideshow slideshow={this.state.content.data} />;
+    } else if (this.state.content.type == "iframe") {
+      return <Iframe url={this.state.content.data.url} />;
+    } else {
+      return null;
+    }
   }
 
   render() {
     return (
-      <div>
-        <div id="message"></div>
-        <div id="content">
-          <img />
-          <iframe frameBorder="0" src="" hidden></iframe>
-        </div>      
+      <div className="app">
+        {this.state.message ? <Message message={this.state.message} /> : null}
+        {this.renderContent()}
       </div>
     );
   }
 }
 
-ReactDOM.render(
-  <App />,
-  document.getElementById('root')
-);
+ReactDOM.render(<App />, document.getElementById("root"));

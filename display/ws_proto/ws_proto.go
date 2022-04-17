@@ -61,8 +61,9 @@ type OpenUrl struct {
 }
 
 type ShowMessage struct {
-	Text  string  `json:"text"`
-	Color *string `json:"color,omitempty"`
+	Text        string  `json:"text"`
+	Color       *string `json:"color,omitempty"`
+	ShowSeconds uint    `json:"show_seconds"`
 }
 
 func MakeServerMessage(typ ServerMessageType, data interface{}) (*ServerMessage, error) {
@@ -73,10 +74,11 @@ func MakeServerMessage(typ ServerMessageType, data interface{}) (*ServerMessage,
 	return &ServerMessage{Type: typ, Data: json.RawMessage(raw_data)}, nil
 }
 
-func MakeCommand(typ CommandType, data interface{}) (*Command, error) {
+func MakeCommandMessage(typ CommandType, data interface{}) (*ServerMessage, error) {
 	raw_data, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
-	return &Command{Type: typ, Data: json.RawMessage(raw_data)}, nil
+	command := Command{Type: typ, Data: json.RawMessage(raw_data)}
+	return MakeServerMessage(CommandMessage, command)
 }

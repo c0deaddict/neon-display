@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"strconv"
 
 	"net/http"
 
@@ -40,6 +41,7 @@ func (d *Display) StartWebsocket() {
 	})
 	r.GET("/metrics", prometheusHandler())
 	r.GET("/event/:name", d.userEvent)
+	r.POST("/message", d.showMessage)
 	r.NoRoute(func(c *gin.Context) {
 		c.FileFromFS(c.Request.URL.Path, http.FS(fsys))
 	})
@@ -55,6 +57,28 @@ func (d *Display) StartWebsocket() {
 func (d *Display) userEvent(c *gin.Context) {
 	name := c.Param("name")
 	log.Printf("event %s", name)
+	c.Status(http.StatusNoContent)
+}
+
+func (d *Display) showMessage(c *gin.Context) {
+	show_msg := ws_proto.ShowMessage{ShowSeconds: 5}
+	show_msg.Text = c.Query("text")
+	if color, ok := c.GetQuery("color"); ok {
+		show_msg.Color = &color
+	}
+	if str, ok := c.GetQuery("show_seconds"); ok {
+		val, err := strconv.Atoi(str)
+		if err == nil && val > 0 {
+			show_msg.ShowSeconds = uint(val)
+		}
+	}
+
+	msg, err := ws_proto.MakeCommandMessage(ws_proto.ShowMessageCommand, show_msg)
+	if err != nil {
+		log.Error().Err(err).Msg("make show message command")
+	}
+
+	d.broadcast(*msg)
 	c.Status(http.StatusNoContent)
 }
 
@@ -143,12 +167,14 @@ func (d *Display) removeClient(conn *websocket.Conn) {
 	log.Warn().Msgf("remove client: %p is not found", conn)
 }
 
-func (d *Display) broadcast(data interface{}) error {
+func (d *Display) broadcast(msg ws_proto.ServerMessage) error {
+	log.Info().Msgf("broadcasting %v", msg)
+
 	d.mu.Lock() // also ensures there is no more than one websocket writer.
 	defer d.mu.Unlock()
 
 	for _, c := range d.clients {
-		err := c.WriteJSON(data)
+		err := c.WriteJSON(msg)
 		if err != nil {
 			log.Warn().Err(err).Msgf("send message to client %p", c)
 		}
