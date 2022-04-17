@@ -16,7 +16,7 @@ const (
 
 	StartSlideshowCommand CommandType = "start_slideshow"
 	StopSlideshowCommand  CommandType = "stop_slideshow"
-	OpenUrlCommand        CommandType = "open_url"
+	OpenSiteCommand       CommandType = "open_site"
 	ShowMessageCommand    CommandType = "show_message"
 	ReloadCommand         CommandType = "reload"
 )
@@ -44,9 +44,9 @@ type Command struct {
 }
 
 type Photo struct {
-	ImageUrl string `json:"url"`
-	Caption  string `json:"caption"`
-	Date     string `json:"date"`
+	ImagePath string `json:"image_path"`
+	Caption   string `json:"caption"`
+	Date      string `json:"date"`
 }
 
 type StartSlideshow struct {
@@ -56,8 +56,9 @@ type StartSlideshow struct {
 	Photos          []Photo `json:"photos"`
 }
 
-type OpenUrl struct {
-	Url string `json:"url"`
+type OpenSite struct {
+	Title string `json:"title"`
+	Url   string `json:"url"`
 }
 
 type ShowMessage struct {

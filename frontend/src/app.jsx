@@ -57,6 +57,7 @@ class App extends React.Component {
       case "start_slideshow":
       case "stop_slideshow":
       case "open_url":
+        console.log(command);
         break;
 
       case "show_message":

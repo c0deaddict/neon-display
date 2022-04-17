@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -24,15 +23,18 @@ type Config struct {
 	WebBind       string
 	WebPort       uint16
 	PhotosPath    string
+	Sites         []Site
+	InitTitle     string
 }
 
 type Display struct {
-	config  Config
-	nc      *nats.Conn
-	browser *os.Process
+	config         Config
+	nc             *nats.Conn
+	browser        *os.Process
+	currentContent content
 
 	mu      sync.Mutex // protects clients, also serves as WriteMessage sync.
-	clients []*websocket.Conn
+	clients []client
 }
 
 func New(config Config) Display {
@@ -40,15 +42,18 @@ func New(config Config) Display {
 }
 
 func (d *Display) Run() {
-	// Connect to NATS
-	// Start firefox
-	// Initialize slideshow
-
 	// nc, err := nats_helper.Connect()
 	// if err != nil {
 	// 	log.Error().Err(err).Msg("failed to connect to nats")
 	// }
 	// defer nc.Close()
+
+	err := d.initContent()
+	if err != nil {
+		log.Fatal().Err(err).Msg("init content")
+	}
+
+	// TODO: improve
 	go d.StartWebsocket()
 
 	conn, err := grpc.Dial(
@@ -92,16 +97,42 @@ func (d *Display) Run() {
 				log.Info().Msg("events stream eof")
 				break
 			} else if err != nil {
-				log.Fatal().Err(err).Msg("watch events")
+				log.Error().Err(err).Msg("watch events")
+				break
 			}
 
-			log.Info().Msgf("event: %s %v", event.Source, event.State)
+			d.handleEvent(event)
 		}
 	}
 
 	if d.browser != nil {
 		d.browser.Kill()
 		d.browser.Wait()
+	}
+}
+
+func (d *Display) handleEvent(event *pb.Event) {
+	log.Info().Msgf("event: %s %v", event.Source, event.State)
+
+	switch event.Source {
+	case pb.EventSource_Pir:
+		if event.State {
+			// broadcast message "motion detected"
+			// stop off timer
+		} else {
+			// broadcast message "no motion"
+			// reset off timer
+		}
+
+	case pb.EventSource_RedButton:
+		if event.State {
+			// previous album
+		}
+
+	case pb.EventSource_YellowButton:
+		if event.State {
+			// next album
+		}
 	}
 }
 

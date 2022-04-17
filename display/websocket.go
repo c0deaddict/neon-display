@@ -17,6 +17,23 @@ import (
 	"github.com/c0deaddict/neon-display/frontend"
 )
 
+type client struct {
+	*websocket.Conn
+	display *Display
+}
+
+func (c client) sendMessage(msg ws_proto.ServerMessage) error {
+	c.display.mu.Lock() // ensure there is no more than one websocket writer.
+	defer c.display.mu.Unlock()
+
+	err := c.WriteJSON(msg)
+	if err != nil {
+		log.Warn().Err(err).Msgf("send message to client %p", &c)
+	}
+
+	return nil
+}
+
 func prometheusHandler() gin.HandlerFunc {
 	h := promhttp.Handler()
 
@@ -78,7 +95,7 @@ func (d *Display) showMessage(c *gin.Context) {
 		log.Error().Err(err).Msg("make show message command")
 	}
 
-	d.broadcast(*msg)
+	d.sendMessage(*msg)
 	c.Status(http.StatusNoContent)
 }
 
@@ -93,14 +110,19 @@ func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	d.addClient(conn)
+
+	client := client{conn, d}
+	d.addClient(client)
+
+	// Show the current content on the client.
+	d.currentContent.Show(client)
 
 	for {
-		messageType, message, err := conn.ReadMessage()
+		messageType, message, err := client.ReadMessage()
 		if websocket.IsCloseError(err, websocket.CloseGoingAway,
 			websocket.CloseNormalClosure,
 			websocket.CloseNoStatusReceived) {
-			log.Info().Msgf("client closed connection %p", conn)
+			log.Info().Msgf("client closed connection %p", &client)
 			break
 		}
 		if err != nil {
@@ -108,22 +130,22 @@ func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if messageType == websocket.TextMessage {
-			d.handleMessage(conn, message)
+			d.handleMessage(client, message)
 		} else {
-			log.Warn().Msgf("ignoring ws message: client %p type %v", conn, messageType)
+			log.Warn().Msgf("ignoring ws message: client %p type %v", &client, messageType)
 		}
 	}
 
-	d.removeClient(conn)
+	d.removeClient(client)
 }
 
-func (d *Display) handleMessage(conn *websocket.Conn, message []byte) {
-	log.Info().Msgf("client %p send message %s", conn, string(message))
+func (d *Display) handleMessage(c client, message []byte) {
+	log.Info().Msgf("client %p send message %s", &c, string(message))
 
 	var req ws_proto.Request
 	err := json.Unmarshal(message, &req)
 	if err != nil {
-		log.Error().Err(err).Msgf("message from client %p", conn)
+		log.Error().Err(err).Msgf("message from client %p", &c)
 		return
 	}
 
@@ -140,35 +162,35 @@ func (d *Display) handleMessage(conn *websocket.Conn, message []byte) {
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	err = conn.WriteJSON(msg)
+	err = c.WriteJSON(msg)
 	if err != nil {
-		log.Warn().Err(err).Msgf("send message to client %p", conn)
+		log.Warn().Err(err).Msgf("send message to client %p", &c)
 	}
 }
 
-func (d *Display) addClient(conn *websocket.Conn) {
+func (d *Display) addClient(c client) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.clients = append(d.clients, conn)
-	log.Info().Msgf("adding client %p", conn)
+	d.clients = append(d.clients, c)
+	log.Info().Msgf("adding client %p", &c)
 }
 
-func (d *Display) removeClient(conn *websocket.Conn) {
+func (d *Display) removeClient(c client) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for i, other := range d.clients {
-		if other == conn {
+		if other == c {
 			d.clients = append(d.clients[:i], d.clients[i+1:]...)
-			log.Info().Msgf("removed client %p", conn)
+			log.Info().Msgf("removed client %p", &c)
 			return
 		}
 	}
 
-	log.Warn().Msgf("remove client: %p is not found", conn)
+	log.Warn().Msgf("remove client: %p is not found", &c)
 }
 
-func (d *Display) broadcast(msg ws_proto.ServerMessage) error {
-	log.Info().Msgf("broadcasting %v", msg)
+func (d *Display) sendMessage(msg ws_proto.ServerMessage) error {
+	log.Info().Msgf("sendMessage (broadcast) %v", msg)
 
 	d.mu.Lock() // also ensures there is no more than one websocket writer.
 	defer d.mu.Unlock()
@@ -176,7 +198,7 @@ func (d *Display) broadcast(msg ws_proto.ServerMessage) error {
 	for _, c := range d.clients {
 		err := c.WriteJSON(msg)
 		if err != nil {
-			log.Warn().Err(err).Msgf("send message to client %p", c)
+			log.Warn().Err(err).Msgf("send message to client %p", &c)
 		}
 	}
 
