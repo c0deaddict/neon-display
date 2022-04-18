@@ -19,12 +19,12 @@ import (
 )
 
 type Config struct {
-	HalSocketPath string
-	WebBind       string
-	WebPort       uint16
-	PhotosPath    string
-	Sites         []Site
-	InitTitle     string
+	HalSocketPath string `json:"hal_socket_path"`
+	WebBind       string `json:"web_bind"`
+	WebPort       uint16 `json:"web_port"`
+	PhotosPath    string `json:"photos_path"`
+	Sites         []Site `json:"sites"`
+	InitTitle     string `json:"init_title"`
 }
 
 type Display struct {

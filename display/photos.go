@@ -4,20 +4,24 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
+	"github.com/c0deaddict/neon-display/display/exif"
 	"github.com/c0deaddict/neon-display/display/ws_proto"
 	"github.com/rs/zerolog/log"
 )
-
-// https://github.com/dsoprea/go-exif
 
 type PhotoAlbum struct {
 	title string
 	path  string
 }
 
-func (p PhotoAlbum) GetTitle() string {
+func (p PhotoAlbum) Title() string {
 	return p.title
+}
+
+func (p PhotoAlbum) Order() int {
+	return 1000
 }
 
 func (p PhotoAlbum) Show(t contentTarget) error {
@@ -37,8 +41,6 @@ func (p PhotoAlbum) Show(t contentTarget) error {
 		return err
 	}
 
-	log.Info().Msgf("sending msg: %v", msg)
-
 	return t.sendMessage(*msg)
 }
 
@@ -52,10 +54,19 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 	for _, file := range files {
 		// TODO: filter on file extension?
 		if file.Type().IsRegular() {
-			imagePath := fmt.Sprintf("%s/%s", p.title, file.Name())
+			filepath := path.Join(p.path, file.Name())
+
+			start := time.Now()
+			_, err := exif.ReadTool(filepath)
+			if err != nil {
+				log.Error().Err(err).Msg("read exif")
+			} else {
+				elapsed := time.Since(start)
+				log.Info().Msgf("exif parse success: %s", elapsed)
+			}
 			// TODO: read exif data for Caption and Date (maybe Location?)
 			photos = append(photos, ws_proto.Photo{
-				ImagePath: imagePath,
+				ImagePath: fmt.Sprintf("%s/%s", p.title, file.Name()),
 				Caption:   file.Name(),
 				Date:      "unknown",
 			})

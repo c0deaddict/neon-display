@@ -3,17 +3,22 @@ package display
 import "github.com/c0deaddict/neon-display/display/ws_proto"
 
 type Site struct {
-	Title string `json:"title"`
-	Url   string `json:"url"`
+	SiteTitle string `json:"title"`
+	SiteOrder int    `json:"order"`
+	Url       string `json:"url"`
 }
 
-func (s Site) GetTitle() string {
-	return s.Title
+func (s Site) Title() string {
+	return s.SiteTitle
+}
+
+func (s Site) Order() int {
+	return s.SiteOrder
 }
 
 func (s Site) Show(t contentTarget) error {
 	cmd := ws_proto.OpenSite{
-		Title: s.Title,
+		Title: s.SiteTitle,
 		Url:   s.Url,
 	}
 

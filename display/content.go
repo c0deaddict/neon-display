@@ -13,20 +13,27 @@ type contentTarget interface {
 }
 
 type content interface {
-	GetTitle() string
+	Title() string
+	Order() int
 	Show(t contentTarget) error
 }
 
 type contentList []content
 
 // implement sort.Interface
-func (a contentList) Len() int           { return len(a) }
-func (a contentList) Less(i, j int) bool { return a[i].GetTitle() < a[j].GetTitle() }
-func (a contentList) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a contentList) Len() int      { return len(a) }
+func (a contentList) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a contentList) Less(i, j int) bool {
+	if a[i].Order() == a[j].Order() {
+		return a[i].Title() < a[j].Title()
+	} else {
+		return a[i].Order() < a[j].Order()
+	}
+}
 
 func (list contentList) Find(title string) (int, bool) {
 	for i, content := range list {
-		if content.GetTitle() == title {
+		if content.Title() == title {
 			return i, true
 		}
 	}
@@ -62,7 +69,7 @@ func (d *Display) initContent() error {
 
 	if index, ok := list.Find(d.config.InitTitle); ok {
 		d.currentContent = list[index]
-		log.Info().Msgf("starting with content: %s", d.currentContent.GetTitle())
+		log.Info().Msgf("starting with content: %s", d.currentContent.Title())
 	} else {
 		d.currentContent = list[0]
 		log.Warn().Msgf("init content not found: %s", d.config.InitTitle)
@@ -87,7 +94,7 @@ func (d *Display) contentStep(step int) {
 	}
 
 	var c content
-	if index, ok := list.Find(d.currentContent.GetTitle()); ok {
+	if index, ok := list.Find(d.currentContent.Title()); ok {
 		c = list[(index+step)%list.Len()]
 	} else {
 		c = list[0]

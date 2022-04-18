@@ -3,14 +3,18 @@ package display
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"strconv"
+	"time"
 
 	"net/http"
 
+	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/c0deaddict/neon-display/display/ws_proto"
@@ -48,9 +52,29 @@ func (d *Display) StartWebsocket() {
 		log.Fatal().Err(err).Msg("loading frontend files")
 	}
 
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery()) // 500 on panics
 
-	// TODO: could use https://github.com/gin-contrib/logger
+	// TODO: customize output
+	r.Use(logger.SetLogger(logger.WithLogger(func(c *gin.Context, out io.Writer, latency time.Duration) zerolog.Logger {
+		return zerolog.New(out).
+			Output(
+				zerolog.ConsoleWriter{
+					Out:        out,
+					TimeFormat: time.RFC3339,
+				},
+			).
+			With().
+			Timestamp().
+			Int("status", c.Writer.Status()).
+			Str("method", c.Request.Method).
+			Str("path", c.Request.URL.Path).
+			Str("ip", c.ClientIP()).
+			Dur("latency", latency).
+			Str("user_agent", c.Request.UserAgent()).
+			Logger()
+	})))
 
 	r.StaticFS("/photo", http.Dir(d.config.PhotosPath))
 	r.GET("/ws", func(c *gin.Context) {
