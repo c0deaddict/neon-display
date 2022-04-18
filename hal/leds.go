@@ -67,5 +67,4 @@ func doLeds() {
 	cw.display(uint32(0x00ff00))
 	cw.display(uint32(0xff0000))
 	cw.display(uint32(0x000000))
-
 }

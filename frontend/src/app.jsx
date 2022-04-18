@@ -55,9 +55,15 @@ class App extends React.Component {
   handleCommand(command) {
     switch (command.type) {
       case "start_slideshow":
+        this.startSlideshow(command.data);
+        break;
+
       case "stop_slideshow":
+        this.stopSlideshow();
+        break;
+
       case "open_url":
-        console.log(command);
+        this.openUrl(command.data);
         break;
 
       case "show_message":
@@ -74,21 +80,24 @@ class App extends React.Component {
   }
 
   startSlideshow(data) {
-    this.setState({content: {type: "slideshow", data}});
+    this.setState({ content: { type: "slideshow", data } });
   }
 
   stopSlideshow() {
-    this.setState({content: null});
+    this.setState({ content: null });
   }
 
   openUrl(data) {
-    this.setState({content: {type: "iframe", data}});
+    this.setState({ content: { type: "iframe", data } });
   }
 
   showMessage(data) {
-    console.log('showMessage', data);
-    this.setState({message: data});
-    setTimeout(() => this.setState({message: null}), data.show_seconds * 1000);
+    console.log("showMessage", data);
+    this.setState({ message: data });
+    setTimeout(
+      () => this.setState({ message: null }),
+      data.show_seconds * 1000
+    );
   }
 
   handleResponse(response) {
