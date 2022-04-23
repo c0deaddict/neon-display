@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"flag"
@@ -30,8 +33,23 @@ func main() {
 		log.Fatal().Err(err).Msg("load config")
 	}
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+
 	d := display.New(config)
-	d.Run()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan bool)
+	go func() {
+		d.Run(ctx)
+		done <- true
+	}()
+
+	select {
+	case <-sigs:
+		cancel()
+		<-done
+	case <-done:
+	}
 }
 
 func loadConfig(configFile string) (display.Config, error) {

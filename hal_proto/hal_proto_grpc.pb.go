@@ -25,7 +25,8 @@ const _ = grpc.SupportPackageIsVersion7
 type HalClient interface {
 	WatchEvents(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Hal_WatchEventsClient, error)
 	SetDisplayPower(ctx context.Context, in *DisplayPower, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	SetLedsPower(ctx context.Context, in *LedsPower, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetLedEffects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*LedEffectList, error)
+	UpdateLeds(ctx context.Context, in *LedState, opts ...grpc.CallOption) (*LedState, error)
 }
 
 type halClient struct {
@@ -77,9 +78,18 @@ func (c *halClient) SetDisplayPower(ctx context.Context, in *DisplayPower, opts 
 	return out, nil
 }
 
-func (c *halClient) SetLedsPower(ctx context.Context, in *LedsPower, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/hal_proto.Hal/SetLedsPower", in, out, opts...)
+func (c *halClient) GetLedEffects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*LedEffectList, error) {
+	out := new(LedEffectList)
+	err := c.cc.Invoke(ctx, "/hal_proto.Hal/GetLedEffects", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *halClient) UpdateLeds(ctx context.Context, in *LedState, opts ...grpc.CallOption) (*LedState, error) {
+	out := new(LedState)
+	err := c.cc.Invoke(ctx, "/hal_proto.Hal/UpdateLeds", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +102,8 @@ func (c *halClient) SetLedsPower(ctx context.Context, in *LedsPower, opts ...grp
 type HalServer interface {
 	WatchEvents(*emptypb.Empty, Hal_WatchEventsServer) error
 	SetDisplayPower(context.Context, *DisplayPower) (*emptypb.Empty, error)
-	SetLedsPower(context.Context, *LedsPower) (*emptypb.Empty, error)
+	GetLedEffects(context.Context, *emptypb.Empty) (*LedEffectList, error)
+	UpdateLeds(context.Context, *LedState) (*LedState, error)
 	mustEmbedUnimplementedHalServer()
 }
 
@@ -106,8 +117,11 @@ func (UnimplementedHalServer) WatchEvents(*emptypb.Empty, Hal_WatchEventsServer)
 func (UnimplementedHalServer) SetDisplayPower(context.Context, *DisplayPower) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetDisplayPower not implemented")
 }
-func (UnimplementedHalServer) SetLedsPower(context.Context, *LedsPower) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetLedsPower not implemented")
+func (UnimplementedHalServer) GetLedEffects(context.Context, *emptypb.Empty) (*LedEffectList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLedEffects not implemented")
+}
+func (UnimplementedHalServer) UpdateLeds(context.Context, *LedState) (*LedState, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateLeds not implemented")
 }
 func (UnimplementedHalServer) mustEmbedUnimplementedHalServer() {}
 
@@ -161,20 +175,38 @@ func _Hal_SetDisplayPower_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Hal_SetLedsPower_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LedsPower)
+func _Hal_GetLedEffects_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(HalServer).SetLedsPower(ctx, in)
+		return srv.(HalServer).GetLedEffects(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hal_proto.Hal/SetLedsPower",
+		FullMethod: "/hal_proto.Hal/GetLedEffects",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HalServer).SetLedsPower(ctx, req.(*LedsPower))
+		return srv.(HalServer).GetLedEffects(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Hal_UpdateLeds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LedState)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HalServer).UpdateLeds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hal_proto.Hal/UpdateLeds",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HalServer).UpdateLeds(ctx, req.(*LedState))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -191,8 +223,12 @@ var Hal_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Hal_SetDisplayPower_Handler,
 		},
 		{
-			MethodName: "SetLedsPower",
-			Handler:    _Hal_SetLedsPower_Handler,
+			MethodName: "GetLedEffects",
+			Handler:    _Hal_GetLedEffects_Handler,
+		},
+		{
+			MethodName: "UpdateLeds",
+			Handler:    _Hal_UpdateLeds_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

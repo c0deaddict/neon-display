@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/c0deaddict/neon-display/hal/leds"
 	pb "github.com/c0deaddict/neon-display/hal_proto"
 )
 
@@ -32,6 +33,8 @@ type Hal struct {
 	server   *grpc.Server
 	rw       sync.RWMutex // protects watchers
 	watchers []pb.Hal_WatchEventsServer
+
+	leds *leds.Leds
 }
 
 func (h *Hal) Run() error {
@@ -54,6 +57,14 @@ func (h *Hal) Run() error {
 	w := watchGpios(h)
 	defer w.Close()
 
+	l, err := leds.Start()
+	if err != nil {
+		log.Error().Err(err).Msg("start leds")
+	} else {
+		h.leds = l
+	}
+
+	// TEMP
 	done := make(chan bool)
 	go func() {
 		state := false
@@ -81,6 +92,10 @@ func (h *Hal) Run() error {
 }
 
 func (h *Hal) Stop() {
+	if h.leds != nil {
+		h.leds.Stop()
+	}
+
 	if h.server != nil {
 		h.server.Stop()
 		h.server = nil
@@ -135,9 +150,12 @@ func (h *Hal) SetDisplayPower(ctx context.Context, power *pb.DisplayPower) (*emp
 	return &emptypb.Empty{}, nil
 }
 
-func (h *Hal) SetLedsPower(ctx context.Context, power *pb.LedsPower) (*emptypb.Empty, error) {
-	log.Info().Msgf("Request to set leds power to: %v", power.Power)
-	return &emptypb.Empty{}, nil
+func (h *Hal) GetLedEffects(ctx context.Context, _ *emptypb.Empty) (*pb.LedEffectList, error) {
+	return &pb.LedEffectList{Effects: leds.Effects()}, nil
+}
+
+func (h *Hal) UpdateLeds(ctx context.Context, state *pb.LedState) (*pb.LedState, error) {
+	return h.leds.Update(state), nil
 }
 
 func (h *Hal) publishEvent(event *pb.Event) {

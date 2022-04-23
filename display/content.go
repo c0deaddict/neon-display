@@ -8,6 +8,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// TODO: consider sending "show_content" to WS.
+// TODO: consider adding a Video content type (scan a dir), test if rpi is performant enough.
+
 type contentTarget interface {
 	sendMessage(msg ws_proto.ServerMessage) error
 }

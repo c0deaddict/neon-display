@@ -14,7 +14,8 @@ extend google.protobuf.EnumValueOptions {
 service Hal {
   rpc WatchEvents(google.protobuf.Empty) returns (stream Event) {}
   rpc SetDisplayPower(DisplayPower) returns (google.protobuf.Empty) {}
-  rpc SetLedsPower(LedsPower) returns (google.protobuf.Empty) {}
+  rpc GetLedEffects(google.protobuf.Empty) returns (LedEffectList) {}
+  rpc UpdateLeds(LedState) returns (LedState) {}
 }
 
 message Event {
@@ -23,9 +24,9 @@ message Event {
 }
 
 enum EventSource {
-    Pir = 0 [(name) = "pir"];
-    RedButton = 1 [(name) = "red_button"];
-    YellowButton = 2 [(name) = "red_button"];
+  Pir = 0 [(name) = "pir"];
+  RedButton = 1 [(name) = "red_button"];
+  YellowButton = 2 [(name) = "yellow_button"];
 }
 
 message DisplayPower {
@@ -34,4 +35,15 @@ message DisplayPower {
 
 message LedsPower {
   bool power = 1;
+}
+
+message LedEffectList {
+  repeated string effects = 1;
+}
+
+message LedState {
+  optional bool state = 1;
+  optional uint32 brightness = 2;
+  optional uint32 color = 3;
+  optional string effect = 4;
 }

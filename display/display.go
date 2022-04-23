@@ -15,7 +15,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/c0deaddict/neon-display/display/homeassistant"
+	"github.com/c0deaddict/neon-display/display/ws_proto"
 	pb "github.com/c0deaddict/neon-display/hal_proto"
+	"github.com/c0deaddict/neon-display/nats_helper"
 )
 
 type Config struct {
@@ -30,7 +33,6 @@ type Config struct {
 type Display struct {
 	config         Config
 	nc             *nats.Conn
-	browser        *os.Process
 	currentContent content
 
 	mu      sync.Mutex // protects clients, also serves as WriteMessage sync.
@@ -41,21 +43,13 @@ func New(config Config) Display {
 	return Display{config: config}
 }
 
-func (d *Display) Run() {
-	// nc, err := nats_helper.Connect()
-	// if err != nil {
-	// 	log.Error().Err(err).Msg("failed to connect to nats")
-	// }
-	// defer nc.Close()
-
+func (d *Display) Run(ctx context.Context) {
 	err := d.initContent()
 	if err != nil {
 		log.Fatal().Err(err).Msg("init content")
 	}
 
-	// TODO: improve
-	go d.StartWebsocket()
-
+	// Connect to the HAL.
 	conn, err := grpc.Dial(
 		d.config.HalSocketPath,
 		grpc.WithInsecure(),
@@ -66,28 +60,42 @@ func (d *Display) Run() {
 		log.Fatal().Err(err).Msg("grpc unix dial")
 	}
 	defer conn.Close()
-	c := pb.NewHalClient(conn)
+	hal := pb.NewHalClient(conn)
 
-	// Contact the server.
-	_, err = c.SetLedsPower(context.Background(), &pb.LedsPower{Power: true})
+	// Connect to NATS.
+	nc, err := nats_helper.Connect()
 	if err != nil {
-		log.Error().Err(err).Msg("set leds power")
+		log.Error().Err(err).Msg("connect to nats")
+	} else {
+		defer nc.Close()
+		// Setup subscriptions for LEDs handling.
+		homeassistant.Start(ctx, hal, nc)
 	}
 
-	_, err = c.SetDisplayPower(context.Background(), &pb.DisplayPower{Power: true})
+	// Start webserver.
+	err = d.startWebserver()
 	if err != nil {
-		log.Error().Err(err).Msg("set display power")
+		log.Fatal().Err(err).Msg("start webserver")
 	}
 
+	// Start browser process.
 	url := fmt.Sprintf("http://localhost:%d", d.config.WebPort)
 	p, err := startBrowser(url)
 	if err != nil {
-		log.Error().Err(err).Msg("start browser")
-	} else {
-		d.browser = p
+		log.Fatal().Err(err).Msg("start browser")
+	}
+	// Stop the browser at exit.
+	defer p.Kill()
+	defer p.Wait()
+
+	// Display starts in off state.
+	_, err = hal.SetDisplayPower(ctx, &pb.DisplayPower{Power: false})
+	if err != nil {
+		log.Error().Err(err).Msg("set display power off")
 	}
 
-	stream, err := c.WatchEvents(context.Background(), &emptypb.Empty{})
+	// Watch events from HAL and process them.
+	stream, err := hal.WatchEvents(ctx, &emptypb.Empty{})
 	if err != nil {
 		log.Error().Err(err).Msg("watch events")
 	} else {
@@ -104,11 +112,6 @@ func (d *Display) Run() {
 			d.handleEvent(event)
 		}
 	}
-
-	if d.browser != nil {
-		d.browser.Kill()
-		d.browser.Wait()
-	}
 }
 
 func (d *Display) handleEvent(event *pb.Event) {
@@ -117,21 +120,31 @@ func (d *Display) handleEvent(event *pb.Event) {
 	switch event.Source {
 	case pb.EventSource_Pir:
 		if event.State {
-			// broadcast message "motion detected"
+			color := "red"
+			d.showMessage(ws_proto.ShowMessage{
+				Text:        "motion detected",
+				Color:       &color,
+				ShowSeconds: 5,
+			})
 			// stop off timer
 		} else {
-			// broadcast message "no motion"
+			color := "red"
+			d.showMessage(ws_proto.ShowMessage{
+				Text:        "no motion",
+				Color:       &color,
+				ShowSeconds: 5,
+			})
 			// reset off timer
 		}
 
 	case pb.EventSource_RedButton:
 		if event.State {
-			// previous album
+			d.prevContent()
 		}
 
 	case pb.EventSource_YellowButton:
 		if event.State {
-			// next album
+			d.nextContent()
 		}
 	}
 }

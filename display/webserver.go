@@ -46,25 +46,19 @@ func prometheusHandler() gin.HandlerFunc {
 	}
 }
 
-func (d *Display) StartWebsocket() {
+func (d *Display) startWebserver() error {
 	fsys, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
-		log.Fatal().Err(err).Msg("loading frontend files")
+		return fmt.Errorf("loading frontend files: %s", err)
 	}
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery()) // 500 on panics
 
-	// TODO: customize output
+	// Log requests to zerolog.
 	r.Use(logger.SetLogger(logger.WithLogger(func(c *gin.Context, out io.Writer, latency time.Duration) zerolog.Logger {
-		return zerolog.New(out).
-			Output(
-				zerolog.ConsoleWriter{
-					Out:        out,
-					TimeFormat: time.RFC3339,
-				},
-			).
+		return log.Logger.
 			With().
 			Timestamp().
 			Int("status", c.Writer.Status()).
@@ -82,17 +76,20 @@ func (d *Display) StartWebsocket() {
 	})
 	r.GET("/metrics", prometheusHandler())
 	r.GET("/event/:name", d.userEvent)
-	r.POST("/message", d.showMessage)
+	r.POST("/message", d.showMessageHandler)
 	r.NoRoute(func(c *gin.Context) {
 		c.FileFromFS(c.Request.URL.Path, http.FS(fsys))
 	})
 
-	listen := fmt.Sprintf("%s:%d", d.config.WebBind, d.config.WebPort)
-	err = r.Run(listen)
-	if err != nil {
-		log.Fatal().Err(err).Msg("web server start")
-	}
+	go func() {
+		listen := fmt.Sprintf("%s:%d", d.config.WebBind, d.config.WebPort)
+		err := r.Run(listen)
+		if err != nil {
+			log.Fatal().Err(err).Msg("web server start")
+		}
+	}()
 
+	return nil
 }
 
 func (d *Display) userEvent(c *gin.Context) {
@@ -101,7 +98,7 @@ func (d *Display) userEvent(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func (d *Display) showMessage(c *gin.Context) {
+func (d *Display) showMessageHandler(c *gin.Context) {
 	show_msg := ws_proto.ShowMessage{ShowSeconds: 5}
 	show_msg.Text = c.Query("text")
 	if color, ok := c.GetQuery("color"); ok {
@@ -114,13 +111,17 @@ func (d *Display) showMessage(c *gin.Context) {
 		}
 	}
 
+	d.showMessage(show_msg)
+	c.Status(http.StatusNoContent)
+}
+
+func (d *Display) showMessage(show_msg ws_proto.ShowMessage) {
 	msg, err := ws_proto.MakeCommandMessage(ws_proto.ShowMessageCommand, show_msg)
 	if err != nil {
 		log.Error().Err(err).Msg("make show message command")
 	}
 
 	d.sendMessage(*msg)
-	c.Status(http.StatusNoContent)
 }
 
 func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -214,8 +215,6 @@ func (d *Display) removeClient(c client) {
 }
 
 func (d *Display) sendMessage(msg ws_proto.ServerMessage) error {
-	log.Info().Msgf("sendMessage (broadcast) %v", msg)
-
 	d.mu.Lock() // also ensures there is no more than one websocket writer.
 	defer d.mu.Unlock()
 

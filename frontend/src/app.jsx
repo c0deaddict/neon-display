@@ -62,7 +62,7 @@ class App extends React.Component {
         this.stopSlideshow();
         break;
 
-      case "open_url":
+      case "open_site":
         this.openUrl(command.data);
         break;
 
