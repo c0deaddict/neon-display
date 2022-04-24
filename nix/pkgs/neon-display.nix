@@ -1,4 +1,4 @@
-{ lib, buildGoModule, npmlock2nix, rpi_ws281x, nodejs-14_x }:
+{ lib, buildGoModule, rpi_ws281x, neon-display-frontend }:
 
 buildGoModule rec {
   name = "neon-display";
@@ -15,18 +15,8 @@ buildGoModule rec {
   NIX_CFLAGS_COMPILE = "-I${rpi_ws281x}/include/ws2811";
   NIX_LDFLAGS_COMPILE = "-L${rpi_ws281x}/lib";
 
-  preBuild = let
-    frontend = npmlock2nix.build {
-      src = src + "/frontend";
-      nodejs = nodejs-14_x;
-
-      buildCommands = [ "npm run build" ];
-      installPhase = ''
-        cp -r dist $out
-      '';
-    };
-  in ''
-    cp -r ${toString frontend} frontend/dist
+  preBuild = ''
+    cp -r ${neon-display-frontend} frontend/dist
   '';
 
   meta = with lib; {
