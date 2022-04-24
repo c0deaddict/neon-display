@@ -32,13 +32,19 @@ func main() {
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
 	h := hal.Hal{SocketPath: *socketPath, ExporterListen: *exporterListen}
+	done := make(chan bool)
 	go func() {
 		err := h.Run()
 		if err != nil {
 			log.Error().Err(err).Msg("hal")
 		}
+		done <- true
 	}()
 
-	<-sigs
+	select {
+	case <-sigs:
+	case <-done:
+	}
+
 	h.Stop()
 }

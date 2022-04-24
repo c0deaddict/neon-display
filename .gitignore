@@ -1,3 +1,5 @@
 .direnv
+/main
 /photos
+/result
 config.json

@@ -1,9 +1,10 @@
 package leds
 
+import "time"
+
 type LedEffect interface {
 	Name() string
-	Init(l *Leds) bool
-	Update(l *Leds) bool
+	Render(l *Leds) *time.Duration
 }
 
 func effects() []LedEffect {

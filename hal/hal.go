@@ -92,13 +92,14 @@ func (h *Hal) Run() error {
 }
 
 func (h *Hal) Stop() {
-	if h.leds != nil {
-		h.leds.Stop()
-	}
-
 	if h.server != nil {
 		h.server.Stop()
 		h.server = nil
+	}
+
+	if h.leds != nil {
+		h.leds.Stop()
+		h.leds = nil
 	}
 }
 
