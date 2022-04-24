@@ -54,15 +54,15 @@ class App extends React.Component {
 
   handleCommand(command) {
     switch (command.type) {
-      case "start_slideshow":
+      case "show_content":
         this.startSlideshow(command.data);
         break;
 
-      case "stop_slideshow":
+      case "pause_content_":
         this.stopSlideshow();
         break;
 
-      case "open_site":
+      case "resume_content":
         this.openUrl(command.data);
         break;
 
@@ -92,7 +92,6 @@ class App extends React.Component {
   }
 
   showMessage(data) {
-    console.log("showMessage", data);
     this.setState({ message: data });
     setTimeout(
       () => this.setState({ message: null }),

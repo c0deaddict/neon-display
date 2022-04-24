@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"path"
 	"strconv"
 	"time"
 
@@ -70,13 +71,23 @@ func (d *Display) startWebserver() error {
 			Logger()
 	})))
 
-	r.StaticFS("/photo", http.Dir(d.config.PhotosPath))
+	if d.config.PhotosPath != "" {
+		r.StaticFS("/photo", http.Dir(d.config.PhotosPath))
+	}
+
+	// Videos must be able to be streamed, Gin's r.StaticFS can't do that.
+	// Use http.ServeFile, which does support streaming (ranges).
+	// https://stackoverflow.com/questions/63221721/serve-video-with-go-gin
+	if d.config.VideosPath != "" {
+		r.GET("/video/:name", d.videoHandler)
+	}
+
 	r.GET("/ws", func(c *gin.Context) {
 		d.websocketHandler(c.Writer, c.Request)
 	})
 	r.GET("/metrics", prometheusHandler())
 	r.GET("/event/:name", d.userEvent)
-	r.POST("/message", d.showMessageHandler)
+	r.POST("/message", d.messageHandler)
 	r.NoRoute(func(c *gin.Context) {
 		c.FileFromFS(c.Request.URL.Path, http.FS(fsys))
 	})
@@ -98,7 +109,7 @@ func (d *Display) userEvent(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func (d *Display) showMessageHandler(c *gin.Context) {
+func (d *Display) messageHandler(c *gin.Context) {
 	show_msg := ws_proto.ShowMessage{ShowSeconds: 5}
 	show_msg.Text = c.Query("text")
 	if color, ok := c.GetQuery("color"); ok {
@@ -115,13 +126,13 @@ func (d *Display) showMessageHandler(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func (d *Display) showMessage(show_msg ws_proto.ShowMessage) {
-	msg, err := ws_proto.MakeCommandMessage(ws_proto.ShowMessageCommand, show_msg)
+func (d *Display) showMessage(msg ws_proto.ShowMessage) {
+	cmd, err := ws_proto.MakeCommandMessage(ws_proto.ShowMessageCommand, msg)
 	if err != nil {
 		log.Error().Err(err).Msg("make show message command")
 	}
 
-	d.sendMessage(*msg)
+	d.sendMessage(*cmd)
 }
 
 func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +151,7 @@ func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	d.addClient(client)
 
 	// Show the current content on the client.
-	d.currentContent.Show(client)
+	d.showContentOnTarget(client)
 
 	for {
 		messageType, message, err := client.ReadMessage()
@@ -226,4 +237,10 @@ func (d *Display) sendMessage(msg ws_proto.ServerMessage) error {
 	}
 
 	return nil
+}
+
+func (d *Display) videoHandler(c *gin.Context) {
+	name := c.Param("name")
+	filepath := path.Join(d.config.VideosPath, name)
+	http.ServeFile(c.Writer, c.Request, filepath)
 }

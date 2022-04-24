@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"time"
 
-	"github.com/c0deaddict/neon-display/display/exif"
 	"github.com/c0deaddict/neon-display/display/ws_proto"
-	"github.com/rs/zerolog/log"
 )
 
 type PhotoAlbum struct {
@@ -24,24 +21,19 @@ func (p PhotoAlbum) Order() int {
 	return 1000
 }
 
-func (p PhotoAlbum) Show(t contentTarget) error {
+func (p PhotoAlbum) Show() (*ws_proto.ShowContent, error) {
 	photos, err := p.readPhotos()
 	if err != nil {
-		return fmt.Errorf("read photos: %v", err)
+		return nil, fmt.Errorf("read photos: %v", err)
 	}
 
-	cmd := ws_proto.StartSlideshow{
+	data := ws_proto.PhotosContent{
 		AlbumTitle:   p.title,
 		DelaySeconds: 10,
 		Photos:       photos,
 	}
 
-	msg, err := ws_proto.MakeCommandMessage(ws_proto.StartSlideshowCommand, cmd)
-	if err != nil {
-		return err
-	}
-
-	return t.sendMessage(*msg)
+	return ws_proto.MakeShowContentMessage(ws_proto.PhotosContentType, data)
 }
 
 func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
@@ -54,16 +46,16 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 	for _, file := range files {
 		// TODO: filter on file extension?
 		if file.Type().IsRegular() {
-			filepath := path.Join(p.path, file.Name())
+			// filepath := path.Join(p.path, file.Name())
+			// start := time.Now()
+			// _, err := exif.ReadTool(filepath)
+			// if err != nil {
+			// 	log.Error().Err(err).Msg("read exif")
+			// } else {
+			// 	elapsed := time.Since(start)
+			// 	log.Info().Msgf("exif parse success: %s", elapsed)
+			// }
 
-			start := time.Now()
-			_, err := exif.ReadTool(filepath)
-			if err != nil {
-				log.Error().Err(err).Msg("read exif")
-			} else {
-				elapsed := time.Since(start)
-				log.Info().Msgf("exif parse success: %s", elapsed)
-			}
 			// TODO: read exif data for Caption and Date (maybe Location?)
 			photos = append(photos, ws_proto.Photo{
 				ImagePath: fmt.Sprintf("%s/%s", p.title, file.Name()),
@@ -77,6 +69,10 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 }
 
 func (d *Display) readAlbums() ([]PhotoAlbum, error) {
+	if d.config.PhotosPath == "" {
+		return nil, nil
+	}
+
 	files, err := os.ReadDir(d.config.PhotosPath)
 	if err != nil {
 		return nil, err

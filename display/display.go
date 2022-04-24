@@ -16,27 +16,34 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/c0deaddict/neon-display/display/homeassistant"
+	"github.com/c0deaddict/neon-display/display/nats_helper"
 	"github.com/c0deaddict/neon-display/display/ws_proto"
 	pb "github.com/c0deaddict/neon-display/hal_proto"
-	"github.com/c0deaddict/neon-display/nats_helper"
 )
 
 type Config struct {
-	HalSocketPath string `json:"hal_socket_path"`
-	WebBind       string `json:"web_bind"`
-	WebPort       uint16 `json:"web_port"`
-	PhotosPath    string `json:"photos_path"`
-	Sites         []Site `json:"sites"`
-	InitTitle     string `json:"init_title"`
+	HalSocketPath string             `json:"hal_socket_path"`
+	WebBind       string             `json:"web_bind"`
+	WebPort       uint16             `json:"web_port"`
+	PhotosPath    string             `json:"photos_path,omitempty"`
+	VideosPath    string             `json:"videos_path,omitempty"`
+	Sites         []Site             `json:"sites"`
+	InitTitle     string             `json:"init_title"`
+	Nats          nats_helper.Config `json:"nats"`
+	OffTimeout    uint               `json:"off_timeout"`
+	// TODO: add power off hours (schedule)
 }
 
 type Display struct {
 	config         Config
 	nc             *nats.Conn
 	currentContent content
+	hal            pb.HalClient
+	offTimer       *time.Timer
 
-	mu      sync.Mutex // protects clients, also serves as WriteMessage sync.
+	mu      sync.Mutex // protects clients, power and also serves as WriteMessage sync.
 	clients []client
+	power   bool
 }
 
 func New(config Config) Display {
@@ -60,16 +67,16 @@ func (d *Display) Run(ctx context.Context) {
 		log.Fatal().Err(err).Msg("grpc unix dial")
 	}
 	defer conn.Close()
-	hal := pb.NewHalClient(conn)
+	d.hal = pb.NewHalClient(conn)
 
 	// Connect to NATS.
-	nc, err := nats_helper.Connect()
+	nc, err := nats_helper.Connect(&d.config.Nats)
 	if err != nil {
 		log.Error().Err(err).Msg("connect to nats")
 	} else {
 		defer nc.Close()
 		// Setup subscriptions for LEDs handling.
-		homeassistant.Start(ctx, hal, nc)
+		homeassistant.Start(ctx, d.hal, nc)
 	}
 
 	// Start webserver.
@@ -88,14 +95,11 @@ func (d *Display) Run(ctx context.Context) {
 	defer p.Kill()
 	defer p.Wait()
 
-	// Display starts in off state.
-	_, err = hal.SetDisplayPower(ctx, &pb.DisplayPower{Power: false})
-	if err != nil {
-		log.Error().Err(err).Msg("set display power off")
-	}
+	// Turn off display after config.OffTimeout seconds.
+	d.startOffTimer()
 
 	// Watch events from HAL and process them.
-	stream, err := hal.WatchEvents(ctx, &emptypb.Empty{})
+	stream, err := d.hal.WatchEvents(ctx, &emptypb.Empty{})
 	if err != nil {
 		log.Error().Err(err).Msg("watch events")
 	} else {
@@ -114,6 +118,55 @@ func (d *Display) Run(ctx context.Context) {
 	}
 }
 
+func (d *Display) startOffTimer() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.offTimer != nil {
+		d.offTimer.Stop()
+	}
+
+	wait := time.Duration(d.config.OffTimeout) * time.Second
+	d.offTimer = time.AfterFunc(wait, d.powerOff)
+}
+
+func (d *Display) powerOff() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.power {
+		_, err := d.hal.SetDisplayPower(context.Background(), &pb.DisplayPower{Power: false})
+		if err != nil {
+			log.Error().Err(err).Msg("set display power off")
+		} else {
+			d.power = false
+			// TODO: send pauseContent message
+			// NOTE: we still have the lock here.
+		}
+	}
+}
+
+func (d *Display) powerOn() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.offTimer != nil {
+		d.offTimer.Stop()
+		d.offTimer = nil
+	}
+
+	if !d.power {
+		_, err := d.hal.SetDisplayPower(context.Background(), &pb.DisplayPower{Power: true})
+		if err != nil {
+			log.Error().Err(err).Msg("set display power on")
+		} else {
+			d.power = true
+			// TODO: send resumeContent message
+			// NOTE: we still have the lock here.
+		}
+	}
+}
+
 func (d *Display) handleEvent(event *pb.Event) {
 	log.Info().Msgf("event: %s %v", event.Source, event.State)
 
@@ -126,7 +179,7 @@ func (d *Display) handleEvent(event *pb.Event) {
 				Color:       &color,
 				ShowSeconds: 5,
 			})
-			// stop off timer
+			d.powerOn()
 		} else {
 			color := "red"
 			d.showMessage(ws_proto.ShowMessage{
@@ -134,7 +187,7 @@ func (d *Display) handleEvent(event *pb.Event) {
 				Color:       &color,
 				ShowSeconds: 5,
 			})
-			// reset off timer
+			d.startOffTimer()
 		}
 
 	case pb.EventSource_RedButton:

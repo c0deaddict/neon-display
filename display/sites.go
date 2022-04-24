@@ -16,16 +16,11 @@ func (s Site) Order() int {
 	return s.SiteOrder
 }
 
-func (s Site) Show(t contentTarget) error {
-	cmd := ws_proto.OpenSite{
+func (s Site) Show() (*ws_proto.ShowContent, error) {
+	site := ws_proto.SiteContent{
 		Title: s.SiteTitle,
 		Url:   s.Url,
 	}
 
-	msg, err := ws_proto.MakeCommandMessage(ws_proto.OpenSiteCommand, cmd)
-	if err != nil {
-		return err
-	}
-
-	return t.sendMessage(*msg)
+	return ws_proto.MakeShowContentMessage(ws_proto.SiteContentType, site)
 }

@@ -7,6 +7,7 @@ import (
 type RequestMethod string
 type ServerMessageType string
 type CommandType string
+type ContentType string
 
 const (
 	PingMethod RequestMethod = "ping"
@@ -14,11 +15,15 @@ const (
 	ResponseMessage ServerMessageType = "response"
 	CommandMessage  ServerMessageType = "command"
 
-	StartSlideshowCommand CommandType = "start_slideshow"
-	StopSlideshowCommand  CommandType = "stop_slideshow"
-	OpenSiteCommand       CommandType = "open_site"
-	ShowMessageCommand    CommandType = "show_message"
-	ReloadCommand         CommandType = "reload"
+	ShowContentCommand   CommandType = "show_content"
+	PauseContentCommand  CommandType = "pause_content"
+	ResumeContentCommand CommandType = "resume_content"
+	ShowMessageCommand   CommandType = "show_message"
+	ReloadCommand        CommandType = "reload"
+
+	PhotosContentType ContentType = "photos"
+	SiteContentType   ContentType = "site"
+	VideoContentType  ContentType = "video"
 )
 
 type Request struct {
@@ -49,16 +54,26 @@ type Photo struct {
 	Date      string `json:"date"`
 }
 
-type StartSlideshow struct {
+type ShowContent struct {
+	Type ContentType     `json:"type"`
+	Data json.RawMessage `json:"data"`
+}
+
+type PhotosContent struct {
 	AlbumTitle      string  `json:"album_title"`
 	DelaySeconds    uint    `json:"delay_seconds"`
 	BackgroundColor *string `json:"background_color,omitempty"`
 	Photos          []Photo `json:"photos"`
 }
 
-type OpenSite struct {
+type SiteContent struct {
 	Title string `json:"title"`
 	Url   string `json:"url"`
+}
+
+type VideoContent struct {
+	Title string `json:"title"`
+	Path  string `json:"path"`
 }
 
 type ShowMessage struct {
@@ -82,4 +97,13 @@ func MakeCommandMessage(typ CommandType, data interface{}) (*ServerMessage, erro
 	}
 	command := Command{Type: typ, Data: json.RawMessage(raw_data)}
 	return MakeServerMessage(CommandMessage, command)
+}
+
+func MakeShowContentMessage(typ ContentType, data interface{}) (*ShowContent, error) {
+	raw_data, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	show := ShowContent{Type: typ, Data: json.RawMessage(raw_data)}
+	return &show, nil
 }

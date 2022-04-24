@@ -8,9 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// TODO: consider sending "show_content" to WS.
-// TODO: consider adding a Video content type (scan a dir), test if rpi is performant enough.
-
 type contentTarget interface {
 	sendMessage(msg ws_proto.ServerMessage) error
 }
@@ -18,7 +15,7 @@ type contentTarget interface {
 type content interface {
 	Title() string
 	Order() int
-	Show(t contentTarget) error
+	Show() (*ws_proto.ShowContent, error)
 }
 
 type contentList []content
@@ -81,12 +78,28 @@ func (d *Display) initContent() error {
 	return nil
 }
 
-func (d *Display) setContent(content content) {
-	d.currentContent = content
-	err := content.Show(d)
+func (d *Display) showContentOnTarget(t contentTarget) {
+	show, err := d.currentContent.Show()
 	if err != nil {
 		log.Error().Err(err).Msg("show content")
+		return
 	}
+
+	msg, err := ws_proto.MakeCommandMessage(ws_proto.ShowContentCommand, show)
+	if err != nil {
+		log.Error().Err(err).Msg("make show command message")
+		return
+	}
+
+	err = t.sendMessage(*msg)
+	if err != nil {
+		log.Error().Err(err).Msg("send show content command")
+	}
+}
+
+func (d *Display) setContent(content content) {
+	d.currentContent = content
+	d.showContentOnTarget(d)
 }
 
 func (d *Display) contentStep(step int) {
