@@ -14,12 +14,12 @@ in {
     enable = mkEnableOption "neon-display";
 
     user = mkOption {
-      type = types.string;
+      type = types.str;
       example = "display";
     };
 
     group = mkOption {
-      type = types.string;
+      type = types.str;
       example = "users";
     };
 
