@@ -58,6 +58,11 @@ class App extends React.Component {
   handleCommand(command) {
     switch (command.type) {
       case "show_content":
+        this.showMessage({
+          text: command.data.title,
+          color: "red",
+          show_seconds: 5,
+        });
         this.showContent(command.data);
         break;
 
