@@ -55,25 +55,23 @@ type Photo struct {
 }
 
 type ShowContent struct {
-	Type ContentType     `json:"type"`
-	Data json.RawMessage `json:"data"`
+	Type  ContentType     `json:"type"`
+	Title string          `json:"title"`
+	Data  json.RawMessage `json:"data"`
 }
 
 type PhotosContent struct {
-	AlbumTitle      string  `json:"album_title"`
 	DelaySeconds    uint    `json:"delay_seconds"`
 	BackgroundColor *string `json:"background_color,omitempty"`
 	Photos          []Photo `json:"photos"`
 }
 
 type SiteContent struct {
-	Title string `json:"title"`
-	Url   string `json:"url"`
+	Url string `json:"url"`
 }
 
 type VideoContent struct {
-	Title string `json:"title"`
-	Path  string `json:"path"`
+	Path string `json:"path"`
 }
 
 type ShowMessage struct {
@@ -99,11 +97,11 @@ func MakeCommandMessage(typ CommandType, data interface{}) (*ServerMessage, erro
 	return MakeServerMessage(CommandMessage, command)
 }
 
-func MakeShowContentMessage(typ ContentType, data interface{}) (*ShowContent, error) {
+func MakeShowContentMessage(typ ContentType, title string, data interface{}) (*ShowContent, error) {
 	raw_data, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
-	show := ShowContent{Type: typ, Data: json.RawMessage(raw_data)}
+	show := ShowContent{Type: typ, Title: title, Data: json.RawMessage(raw_data)}
 	return &show, nil
 }

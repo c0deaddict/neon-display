@@ -135,13 +135,13 @@ func (d *Display) powerOff() {
 	defer d.mu.Unlock()
 
 	if d.power {
+		log.Info().Msg("no motion: turning off display and pausing content")
 		_, err := d.hal.SetDisplayPower(context.Background(), &pb.DisplayPower{Power: false})
 		if err != nil {
 			log.Error().Err(err).Msg("set display power off")
 		} else {
 			d.power = false
-			// TODO: send pauseContent message
-			// NOTE: we still have the lock here.
+			d.pauseContent()
 		}
 	}
 }
@@ -156,13 +156,13 @@ func (d *Display) powerOn() {
 	}
 
 	if !d.power {
+		log.Info().Msg("motion detected: turning on display and resuming content")
 		_, err := d.hal.SetDisplayPower(context.Background(), &pb.DisplayPower{Power: true})
 		if err != nil {
 			log.Error().Err(err).Msg("set display power on")
 		} else {
 			d.power = true
-			// TODO: send resumeContent message
-			// NOTE: we still have the lock here.
+			d.resumeContent()
 		}
 	}
 }

@@ -20,6 +20,7 @@ import (
 
 	"github.com/c0deaddict/neon-display/display/ws_proto"
 	"github.com/c0deaddict/neon-display/frontend"
+	pb "github.com/c0deaddict/neon-display/hal_proto"
 )
 
 type client struct {
@@ -86,8 +87,12 @@ func (d *Display) startWebserver() error {
 		d.websocketHandler(c.Writer, c.Request)
 	})
 	r.GET("/metrics", prometheusHandler())
-	r.GET("/event/:name", d.userEvent)
+	r.GET("/content", d.listContentHandler)
+	r.POST("/event/:name", d.userEvent)
 	r.POST("/message", d.messageHandler)
+	r.POST("/show/:title", d.gotoContentHandler)
+	r.POST("/pause", d.pauseContentHandler)
+	r.POST("/resume", d.resumeContentHandler)
 	r.NoRoute(func(c *gin.Context) {
 		c.FileFromFS(c.Request.URL.Path, http.FS(fsys))
 	})
@@ -103,9 +108,34 @@ func (d *Display) startWebserver() error {
 	return nil
 }
 
+/// Fake a HAL event.
 func (d *Display) userEvent(c *gin.Context) {
-	name := c.Param("name")
-	log.Printf("event %s", name)
+	switch c.Param("name") {
+	case "motion":
+		d.handleEvent(&pb.Event{
+			Source: pb.EventSource_Pir,
+			State:  true,
+		})
+	case "no_motion":
+		d.handleEvent(&pb.Event{
+			Source: pb.EventSource_Pir,
+			State:  false,
+		})
+	case "red":
+		d.handleEvent(&pb.Event{
+			Source: pb.EventSource_RedButton,
+			State:  true,
+		})
+	case "yellow":
+		d.handleEvent(&pb.Event{
+			Source: pb.EventSource_YellowButton,
+			State:  true,
+		})
+	default:
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
 	c.Status(http.StatusNoContent)
 }
 
@@ -229,6 +259,11 @@ func (d *Display) sendMessage(msg ws_proto.ServerMessage) error {
 	d.mu.Lock() // also ensures there is no more than one websocket writer.
 	defer d.mu.Unlock()
 
+	return d.broadcast(msg)
+}
+
+/// Requires d.mu.Lock to be held.
+func (d *Display) broadcast(msg ws_proto.ServerMessage) error {
 	for _, c := range d.clients {
 		err := c.WriteJSON(msg)
 		if err != nil {
@@ -243,4 +278,35 @@ func (d *Display) videoHandler(c *gin.Context) {
 	name := c.Param("name")
 	filepath := path.Join(d.config.VideosPath, name)
 	http.ServeFile(c.Writer, c.Request, filepath)
+}
+
+func (d *Display) gotoContentHandler(c *gin.Context) {
+	if d.gotoContent(c.Param("title")) {
+		c.Status(http.StatusNoContent)
+	} else {
+		c.Status(http.StatusBadRequest)
+	}
+}
+
+func (d *Display) listContentHandler(c *gin.Context) {
+	list := d.listContent()
+	result := make([]string, len(list))
+	for i, c := range list {
+		result[i] = c.Title()
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (d *Display) pauseContentHandler(c *gin.Context) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.pauseContent()
+	c.Status(http.StatusOK)
+}
+
+func (d *Display) resumeContentHandler(c *gin.Context) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.resumeContent()
+	c.Status(http.StatusOK)
 }

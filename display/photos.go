@@ -28,12 +28,11 @@ func (p PhotoAlbum) Show() (*ws_proto.ShowContent, error) {
 	}
 
 	data := ws_proto.PhotosContent{
-		AlbumTitle:   p.title,
 		DelaySeconds: 10,
 		Photos:       photos,
 	}
 
-	return ws_proto.MakeShowContentMessage(ws_proto.PhotosContentType, data)
+	return ws_proto.MakeShowContentMessage(ws_proto.PhotosContentType, p.title, data)
 }
 
 func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {

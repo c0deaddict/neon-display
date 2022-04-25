@@ -2,6 +2,8 @@ package display
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/c0deaddict/neon-display/display/ws_proto"
 )
@@ -21,11 +23,10 @@ func (v Video) Order() int {
 
 func (v Video) Show() (*ws_proto.ShowContent, error) {
 	data := ws_proto.VideoContent{
-		Title: v.title,
-		Path:  v.path,
+		Path: v.path,
 	}
 
-	return ws_proto.MakeShowContentMessage(ws_proto.VideoContentType, data)
+	return ws_proto.MakeShowContentMessage(ws_proto.VideoContentType, v.title, data)
 }
 
 func (d *Display) readVideos() ([]Video, error) {
@@ -41,8 +42,10 @@ func (d *Display) readVideos() ([]Video, error) {
 	videos := make([]Video, 0)
 	for _, file := range files {
 		if file.Type().IsRegular() {
+			ext := filepath.Ext(file.Name())
+			title := strings.TrimSuffix(file.Name(), ext)
 			videos = append(videos, Video{
-				title: file.Name(),
+				title: title,
 				path:  file.Name(),
 			})
 		}

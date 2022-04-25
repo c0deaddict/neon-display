@@ -1,7 +1,7 @@
 import * as React from "react";
 import ProgressBar from "./progress_bar.jsx";
 
-export default class Slideshow extends React.Component {
+export default class Photos extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -10,17 +10,17 @@ export default class Slideshow extends React.Component {
   }
 
   getBackgroundColor() {
-    return this.props.slideshow.background_color || "black";
+    return this.props.data.background_color || "black";
   }
 
   getProgress() {
-    return (this.state.index + 1) / this.props.slideshow.photos.length;
+    return (this.state.index + 1) / this.props.data.photos.length;
   }
 
   componentDidMount() {
     this.timer = setInterval(
       this.nextPhoto.bind(this),
-      this.props.slideshow.delay_seconds * 1000
+      this.props.data.delay_seconds * 1000
     );
   }
 
@@ -29,15 +29,23 @@ export default class Slideshow extends React.Component {
   }
 
   nextPhoto() {
-    const index = (this.state.index + 1) % this.props.slideshow.photos.length;
+    const index = (this.state.index + 1) % this.props.data.photos.length;
     this.setState({ index });
   }
 
+  pause() {
+    console.error("not implemented");
+  }
+
+  resume() {
+    console.error("not implemented");
+  }
+
   render() {
-    const photo = this.props.slideshow.photos[this.state.index];
+    const photo = this.props.data.photos[this.state.index];
     return (
       <div
-        className="slideshow"
+        className="photos"
         style={{ backgroundColor: this.getBackgroundColor() }}
       >
         <img src={"/photo/" + photo.image_path} />

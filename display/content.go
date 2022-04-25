@@ -2,6 +2,7 @@ package display
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 
 	"github.com/c0deaddict/neon-display/display/ws_proto"
@@ -52,8 +53,17 @@ func (d *Display) listContent() contentList {
 		}
 	}
 
+	videos, err := d.readVideos()
+	if err != nil {
+		log.Error().Err(err).Msg("read videos")
+	} else {
+		for _, video := range videos {
+			list = append(list, video)
+		}
+	}
+
 	for _, site := range d.config.Sites {
-		list = append(list, &site)
+		list = append(list, site)
 	}
 
 	result := contentList(list)
@@ -67,12 +77,21 @@ func (d *Display) initContent() error {
 		return fmt.Errorf("no content found")
 	}
 
-	if index, ok := list.Find(d.config.InitTitle); ok {
-		d.currentContent = list[index]
-		log.Info().Msgf("starting with content: %s", d.currentContent.Title())
-	} else {
+	log.Info().Msg("found content:")
+	for _, c := range list {
+		log.Info().Msgf("%v \"%s\"", reflect.TypeOf(c), c.Title())
+	}
+
+	if d.config.InitTitle != "" {
+		if index, ok := list.Find(d.config.InitTitle); ok {
+			d.currentContent = list[index]
+			log.Info().Msgf("starting with content: %s", d.currentContent.Title())
+		} else {
+			log.Warn().Msgf("init content not found: %s", d.config.InitTitle)
+		}
+	}
+	if d.currentContent == nil {
 		d.currentContent = list[0]
-		log.Warn().Msgf("init content not found: %s", d.config.InitTitle)
 	}
 
 	return nil
@@ -111,7 +130,12 @@ func (d *Display) contentStep(step int) {
 
 	var c content
 	if index, ok := list.Find(d.currentContent.Title()); ok {
-		c = list[(index+step)%list.Len()]
+		index = (index + step) % list.Len()
+		// Go's modulo can return negative numbers.
+		if index < 0 {
+			index = list.Len() + index
+		}
+		c = list[index]
 	} else {
 		c = list[0]
 	}
@@ -125,4 +149,43 @@ func (d *Display) prevContent() {
 
 func (d *Display) nextContent() {
 	d.contentStep(1)
+}
+
+func (d *Display) gotoContent(title string) bool {
+	list := d.listContent()
+	if index, ok := list.Find(title); ok {
+		d.setContent(list[index])
+		return true
+	}
+	return false
+}
+
+/// Requires d.mu.Lock to be held.
+func (d *Display) pauseContent() {
+	msg, err := ws_proto.MakeCommandMessage(ws_proto.PauseContentCommand, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("make pause command")
+		return
+	}
+
+	// We have d.mu.Lock, use broadcast instead of sendMessage.
+	err = d.broadcast(*msg)
+	if err != nil {
+		log.Error().Err(err).Msg("send pause command")
+	}
+}
+
+/// Requires d.mu.Lock to be held.
+func (d *Display) resumeContent() {
+	msg, err := ws_proto.MakeCommandMessage(ws_proto.ResumeContentCommand, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("make resume command")
+		return
+	}
+
+	// We have d.mu.Lock, use broadcast instead of sendMessage.
+	err = d.broadcast(*msg)
+	if err != nil {
+		log.Error().Err(err).Msg("send resume command")
+	}
 }

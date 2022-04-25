@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
@@ -64,30 +63,10 @@ func (h *Hal) Run() error {
 		h.leds = l
 	}
 
-	// TEMP
-	done := make(chan bool)
-	go func() {
-		state := false
-		ticker := time.NewTicker(2 * time.Second)
-		for {
-			select {
-			case <-done:
-				return
-			case <-ticker.C:
-				state = !state
-				h.publishEvent(&pb.Event{
-					Source: pb.EventSource_Pir,
-					State:  state,
-				})
-			}
-		}
-	}()
-
 	h.server = grpc.NewServer()
 	pb.RegisterHalServer(h.server, h)
 	err = h.server.Serve(lis)
 	log.Info().Err(err).Msg("server stopped")
-	done <- true
 	return err
 }
 

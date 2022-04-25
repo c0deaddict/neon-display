@@ -1,8 +1,10 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+
 import Message from "./components/message.jsx";
-import Slideshow from "./components/slideshow.jsx";
-import Iframe from "./components/iframe.jsx";
+import Photos from "./components/photos.jsx";
+import Video from "./components/video.jsx";
+import Site from "./components/site.jsx";
 
 class App extends React.Component {
   constructor(props) {
@@ -11,6 +13,7 @@ class App extends React.Component {
       content: null,
       message: null,
     };
+    this.contentRef = React.createRef();
   }
 
   componentDidMount() {
@@ -55,15 +58,15 @@ class App extends React.Component {
   handleCommand(command) {
     switch (command.type) {
       case "show_content":
-        this.startSlideshow(command.data);
+        this.showContent(command.data);
         break;
 
-      case "pause_content_":
-        this.stopSlideshow();
+      case "pause_content":
+        this.contentRef.current.pause();
         break;
 
       case "resume_content":
-        this.openUrl(command.data);
+        this.contentRef.current.resume();
         break;
 
       case "show_message":
@@ -79,16 +82,8 @@ class App extends React.Component {
     }
   }
 
-  startSlideshow(data) {
-    this.setState({ content: { type: "slideshow", data } });
-  }
-
-  stopSlideshow() {
-    this.setState({ content: null });
-  }
-
-  openUrl(data) {
-    this.setState({ content: { type: "iframe", data } });
+  showContent(data) {
+    this.setState({ content: data });
   }
 
   showMessage(data) {
@@ -106,11 +101,17 @@ class App extends React.Component {
   renderContent() {
     if (this.state.content == null) {
       return null;
-    } else if (this.state.content.type == "slideshow") {
-      return <Slideshow slideshow={this.state.content.data} />;
-    } else if (this.state.content.type == "iframe") {
-      return <Iframe url={this.state.content.data.url} />;
-    } else {
+    }
+
+    switch (this.state.content.type) {
+    case "photos":
+      return <Photos data={this.state.content.data} ref={this.contentRef} />
+    case "video":
+      return <Video data={this.state.content.data} ref={this.contentRef} />
+    case "site":
+      return <Site data={this.state.content.data} ref={this.contentRef} />
+    default:
+      console.error("unknown content type: " + this.state.content.type);
       return null;
     }
   }

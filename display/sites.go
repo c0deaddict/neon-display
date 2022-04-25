@@ -18,9 +18,8 @@ func (s Site) Order() int {
 
 func (s Site) Show() (*ws_proto.ShowContent, error) {
 	site := ws_proto.SiteContent{
-		Title: s.SiteTitle,
-		Url:   s.Url,
+		Url: s.Url,
 	}
 
-	return ws_proto.MakeShowContentMessage(ws_proto.SiteContentType, site)
+	return ws_proto.MakeShowContentMessage(ws_proto.SiteContentType, s.SiteTitle, site)
 }
