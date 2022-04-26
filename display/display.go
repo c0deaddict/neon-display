@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
-	"os/exec"
 	"sync"
 	"time"
 
@@ -90,6 +88,7 @@ func (d *Display) Run(ctx context.Context) {
 	url := fmt.Sprintf("http://localhost:%d", d.config.WebPort)
 	p, err := d.startBrowser(url)
 	if err != nil {
+		// NOTE: deferred's aren't run on Fatal..
 		log.Fatal().Err(err).Msg("start browser")
 	}
 	go func() {
@@ -97,7 +96,7 @@ func (d *Display) Run(ctx context.Context) {
 		if err != nil {
 			log.Fatal().Err(err).Msg("browser process wait")
 		}
-		log.Fatal().Msgf("browser exitted with %v", state.ExitCode())
+		log.Fatal().Msgf("browser exited with %v", state.ExitCode())
 	}()
 	// Stop the browser at exit.
 	defer p.Kill()
@@ -105,6 +104,7 @@ func (d *Display) Run(ctx context.Context) {
 	// Turn off display after config.OffTimeout seconds.
 	d.startOffTimer()
 
+	// TODO: move to go function and wait for: watch events stop, browser stop, or grpc stop
 	// Watch events from HAL and process them.
 	stream, err := d.hal.WatchEvents(ctx, &emptypb.Empty{})
 	if err != nil {
@@ -207,12 +207,4 @@ func (d *Display) handleEvent(event *pb.Event) {
 			d.nextContent()
 		}
 	}
-}
-
-func (d *Display) startBrowser(url string) (*os.Process, error) {
-	cmd := exec.Command(d.config.FirefoxBin, "-kiosk", url)
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	return cmd.Process, nil
 }
