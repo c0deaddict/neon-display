@@ -33,10 +33,6 @@ message DisplayPower {
   bool power = 1;
 }
 
-message LedsPower {
-  bool power = 1;
-}
-
 message LedEffectList {
   repeated string effects = 1;
 }

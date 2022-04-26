@@ -6,7 +6,6 @@
     npmlock2nix = {
       url = "github:nix-community/npmlock2nix";
       flake = false;
-      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -18,7 +17,7 @@
       overlay = final: prev:
         import ./nix/pkgs/default.nix {
           pkgs = final;
-          npmlock2nix = final.callPackage inputs.npmlock2nix { };
+          npmlock2nix = import inputs.npmlock2nix { pkgs = final; };
         };
 
       nixosModules.neon-display = import ./nix/modules/neon-display;
@@ -26,7 +25,7 @@
       packages = forAllSystems (system:
         import ./nix/pkgs/default.nix rec {
           pkgs = import nixpkgs { inherit system; };
-          npmlock2nix = pkgs.callPackage inputs.npmlock2nix { };
+          npmlock2nix = import inputs.npmlock2nix { inherit pkgs; };
         });
       defaultPackage =
         forAllSystems (system: self.packages.${system}.neon-display);
