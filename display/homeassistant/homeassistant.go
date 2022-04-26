@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
@@ -118,8 +119,8 @@ func announce(ctx context.Context, hal pb.HalClient, nc *nats.Conn) error {
 	cfg := config{
 		Name:                hostname,
 		UniqueId:            uniqueId,
-		CommandTopic:        commandTopic,
-		StateTopic:          stateTopic,
+		CommandTopic:        strings.ReplaceAll(commandTopic, ".", "/"),
+		StateTopic:          strings.ReplaceAll(stateTopic, ".", "/"),
 		Schema:              "json",
 		Brightness:          true,
 		Effect:              true,
