@@ -58,6 +58,7 @@ func loadConfig(configFile string) (display.Config, error) {
 		WebBind:       "127.0.0.1",
 		WebPort:       8080,
 		PhotosPath:    "/var/lib/neon-display/photos",
+		FirefoxBin:    "firefox",
 	}
 
 	contents, err := ioutil.ReadFile(configFile)

@@ -27,6 +27,7 @@ type Config struct {
 	WebPort       uint16             `json:"web_port"`
 	PhotosPath    string             `json:"photos_path,omitempty"`
 	VideosPath    string             `json:"videos_path,omitempty"`
+	FirefoxBin    string             `json:"firefox_bin,omitempty"`
 	Sites         []Site             `json:"sites"`
 	InitTitle     string             `json:"init_title"`
 	Nats          nats_helper.Config `json:"nats"`
@@ -202,8 +203,8 @@ func (d *Display) handleEvent(event *pb.Event) {
 	}
 }
 
-func startBrowser(url string) (*os.Process, error) {
-	cmd := exec.Command("firefox", "-kiosk", url)
+func (d *Display) startBrowser(url string) (*os.Process, error) {
+	cmd := exec.Command(d.config.FirefoxBin, "-kiosk", url)
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
