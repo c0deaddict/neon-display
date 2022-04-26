@@ -88,7 +88,7 @@ func (d *Display) Run(ctx context.Context) {
 
 	// Start browser process.
 	url := fmt.Sprintf("http://localhost:%d", d.config.WebPort)
-	p, err := startBrowser(url)
+	p, err := d.startBrowser(url)
 	if err != nil {
 		log.Fatal().Err(err).Msg("start browser")
 	}
