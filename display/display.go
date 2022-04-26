@@ -2,7 +2,6 @@ package display
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -25,7 +24,6 @@ type Config struct {
 	WebPort       uint16             `json:"web_port"`
 	PhotosPath    string             `json:"photos_path,omitempty"`
 	VideosPath    string             `json:"videos_path,omitempty"`
-	FirefoxBin    string             `json:"firefox_bin,omitempty"`
 	Sites         []Site             `json:"sites"`
 	InitTitle     string             `json:"init_title"`
 	Nats          nats_helper.Config `json:"nats"`
@@ -84,27 +82,9 @@ func (d *Display) Run(ctx context.Context) {
 		log.Fatal().Err(err).Msg("start webserver")
 	}
 
-	// Start browser process.
-	url := fmt.Sprintf("http://localhost:%d", d.config.WebPort)
-	p, err := d.startBrowser(url)
-	if err != nil {
-		// NOTE: deferred's aren't run on Fatal..
-		log.Fatal().Err(err).Msg("start browser")
-	}
-	go func() {
-		state, err := p.Wait()
-		if err != nil {
-			log.Fatal().Err(err).Msg("browser process wait")
-		}
-		log.Fatal().Msgf("browser exited with %v", state.ExitCode())
-	}()
-	// Stop the browser at exit.
-	defer p.Kill()
-
 	// Turn off display after config.OffTimeout seconds.
 	d.startOffTimer()
 
-	// TODO: move to go function and wait for: watch events stop, browser stop, or grpc stop
 	// Watch events from HAL and process them.
 	stream, err := d.hal.WatchEvents(ctx, &emptypb.Empty{})
 	if err != nil {
@@ -189,6 +169,7 @@ func (d *Display) handleEvent(event *pb.Event) {
 			d.powerOn()
 		} else {
 			color := "red"
+			// TODO: this happens two often.
 			d.showMessage(ws_proto.ShowMessage{
 				Text:        "no motion",
 				Color:       &color,

@@ -23,6 +23,11 @@ in {
       example = "users";
     };
 
+    browser = mkOption {
+      type = types.str;
+      default = "${pkgs.firefox}/bin/firefox -kiosk";
+    };
+
     package = mkOption {
       type = types.package;
       default = pkgs.neon-display;
@@ -36,19 +41,37 @@ in {
 
   config = mkIf cfg.enable {
     services.neon-display.settings = {
+      web_port = 8080;
       hal_socket_path = "/var/run/neon-display/hal.sock";
     };
 
     services.cage = {
       enable = true;
       inherit (cfg) user;
-      program = "${cfg.package}/bin/display -config ${configFile}";
+      program =
+        "${cfg.browser} http://localhost:${toString cfg.settings.web_port}";
     };
 
-    systemd.services."cage-tty1".after = [ "neon-display-hal.service" ];
+    systemd.services."cage-tty1".after = [ "neon-display.service" ];
+
+    systemd.services.neon-display = {
+      wantedBy = [ "multi-user.target" ];
+      after = [ "neon-display-hal.service" ];
+      description = "neon-display";
+
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${cfg.package}/bin/display -config ${configFile}";
+
+        User = user;
+        Group = cfg.group;
+
+        # TODO; hardening
+      };
+    };
 
     systemd.services.neon-display-hal = {
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
       description = "neon-display hardware abstraction layer";
 
       path = [ pkgs.libraspberrypi ];
