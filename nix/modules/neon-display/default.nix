@@ -63,7 +63,7 @@ in {
         Type = "simple";
         ExecStart = "${cfg.package}/bin/display -config ${configFile}";
 
-        User = user;
+        User = cfg.user;
         Group = cfg.group;
 
         # TODO; hardening
