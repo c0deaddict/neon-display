@@ -92,9 +92,15 @@ func (d *Display) Run(ctx context.Context) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("start browser")
 	}
+	go func() {
+		state, err := p.Wait()
+		if err != nil {
+			log.Fatal().Err(err).Msg("browser process wait")
+		}
+		log.Fatal().Msgf("browser exitted with %v", state.ExitCode())
+	}()
 	// Stop the browser at exit.
 	defer p.Kill()
-	defer p.Wait()
 
 	// Turn off display after config.OffTimeout seconds.
 	d.startOffTimer()
