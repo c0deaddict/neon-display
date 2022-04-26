@@ -48,7 +48,10 @@ in {
     systemd.services."cage-tty1".after = [ "neon-display-hal.service" ];
 
     systemd.services.neon-display-hal = {
+      wantedBy = ["multi-user.target"];
       description = "neon-display hardware abstraction layer";
+
+      path = [ pkgs.libraspberrypi ];
 
       serviceConfig = {
         Type = "simple";
@@ -62,29 +65,29 @@ in {
         RuntimeDirectory = "neon-display";
 
         # Hardening
-        CapabilityBoundingSet = "";
-        LockPersonality = true;
-        MemoryDenyWriteExecute = true;
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        PrivateUsers = true;
-        ProcSubset = "pid";
-        ProtectClock = true;
-        ProtectHome = true;
-        ProtectHostname = true;
-        ProtectKernelLogs = true;
-        ProtectKernelModules = true;
-        ProtectKernelTunables = true;
-        ProtectProc = "invisible";
-        ProtectSystem = "strict";
-        ReadOnlyPaths = [ ];
-        ReadWritePaths = [ ];
-        RestrictAddressFamilies = [ "AF_UNIX" ];
-        RestrictNamespaces = true;
-        RestrictRealtime = true;
-        RestrictSUIDSGID = true;
-        SystemCallFilter = [ "@system-service" "~@privileged" "~@resources" ];
-        UMask = "0077";
+        # CapabilityBoundingSet = "";
+        # LockPersonality = true;
+        # MemoryDenyWriteExecute = true;
+        # NoNewPrivileges = true;
+        # PrivateTmp = true;
+        # PrivateUsers = true;
+        # ProcSubset = "pid";
+        # ProtectClock = true;
+        # ProtectHome = true;
+        # ProtectHostname = true;
+        # ProtectKernelLogs = true;
+        # ProtectKernelModules = true;
+        # ProtectKernelTunables = true;
+        # ProtectProc = "invisible";
+        # ProtectSystem = "strict";
+        # ReadOnlyPaths = [ ];
+        # ReadWritePaths = [ ];
+        # RestrictAddressFamilies = [ "AF_UNIX" ];
+        # RestrictNamespaces = true;
+        # RestrictRealtime = true;
+        # RestrictSUIDSGID = true;
+        # SystemCallFilter = [ "@system-service" "~@privileged" "~@resources" ];
+        # UMask = "0077";
       };
     };
   };
