@@ -112,7 +112,7 @@ func (l *Leds) Update(s *pb.LedState) *pb.LedState {
 /// Requires l.mu locked.
 func (l *Leds) fill(color uint32) {
 	for i := 0; i < len(l.dev.Leds(0)); i++ {
-		l.dev.Leds(0)[i] = 0
+		l.dev.Leds(0)[i] = color
 	}
 }
 
@@ -161,6 +161,10 @@ func (l *Leds) render() *time.Duration {
 		err := l.dev.Render()
 		if err != nil {
 			log.Error().Err(err).Msg("leds render")
+		}
+		err = l.dev.Wait()
+		if err != nil {
+			log.Error().Err(err).Msg("leds render wait")
 		}
 		elapsed := time.Since(start)
 		log.Debug().Dur("time", elapsed).Msg("leds render")
