@@ -41,13 +41,13 @@ type config struct {
 }
 
 type color struct {
-	R int `json:"r"`
-	G int `json:"g"`
-	B int `json:"b"`
+	R uint8 `json:"r"`
+	G uint8 `json:"g"`
+	B uint8 `json:"b"`
 }
 
 type state struct {
-	Brightness int    `json:"brightness"`
+	Brightness uint   `json:"brightness"`
 	ColorMode  string `json:"color_mode"`
 	Color      color  `json:"color"`
 	Effect     string `json:"effect"`
@@ -82,13 +82,28 @@ func Start(ctx context.Context, hal pb.HalClient, nc *nats.Conn) {
 			return
 		}
 
-		state, err := hal.UpdateLeds(ctx, command.ledState())
+		ledState, err := hal.UpdateLeds(ctx, command.ledState())
 		if err != nil {
 			log.Error().Err(err).Msgf("homeassistant command %v", command)
 			return
 		}
 
-		// Publish state.
+		// Transform to HA state and publish.
+		state := state{
+			Brightness: uint(*ledState.Brightness),
+			Effect:     *ledState.Effect,
+			Color: color{
+				R: uint8((*ledState.Color & 0xff)),
+				G: uint8((*ledState.Color >> 8) & 0xff),
+				B: uint8((*ledState.Color >> 16) & 0xff),
+			},
+		}
+		if *ledState.State {
+			state.State = stateOn
+		} else {
+			state.State = stateOff
+		}
+
 		data, err := json.Marshal(&state)
 		if err != nil {
 			log.Error().Err(err).Msg("json marshal state")

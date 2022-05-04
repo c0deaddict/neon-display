@@ -135,6 +135,7 @@ func (h *Hal) GetLedEffects(ctx context.Context, _ *emptypb.Empty) (*pb.LedEffec
 }
 
 func (h *Hal) UpdateLeds(ctx context.Context, state *pb.LedState) (*pb.LedState, error) {
+	log.Info().Msgf("updating leds: %v", state)
 	return h.leds.Update(state), nil
 }
 

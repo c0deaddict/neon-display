@@ -163,6 +163,7 @@ func (l *Leds) render() *time.Duration {
 			log.Error().Err(err).Msg("leds render")
 		}
 		elapsed := time.Since(start)
+		log.Debug().Dur("time", elapsed).Msg("leds render")
 		if wait != nil {
 			*wait -= elapsed
 			if *wait < 0 {

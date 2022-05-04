@@ -52,6 +52,14 @@ in {
         "${cfg.browser} http://localhost:${toString cfg.settings.web_port}";
     };
 
+    # Hide the cursor if no input devices are connected.
+    systemd.services."cage-tty1" = {
+      environment = {
+        WLR_LIBINPUT_NO_DEVICES = "1";
+        NO_AT_BRIDGE = "1";
+      };
+    };
+
     systemd.services."cage-tty1".after = [ "neon-display.service" ];
 
     systemd.services.neon-display = {
