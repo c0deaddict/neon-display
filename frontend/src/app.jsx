@@ -17,26 +17,33 @@ class App extends React.Component {
   }
 
   componentDidMount() {
+    this.connect();
+  }
+
+  connect() {
     const url = new URL("/ws", window.location.href);
     url.protocol = url.protocol.replace("http", "ws");
-
     this.client = new WebSocket(url.href);
     this.client.addEventListener("open", (event) => {
-      console.log("WebSocket client connected");
+      console.log("webSocket client connected");
     });
     this.client.addEventListener("message", this.handleMessage.bind(this));
-
-    this.timer = setInterval(() => {
-      const id = self.crypto.randomUUID();
-      const method = "ping";
-      const params = null;
-      this.client.send(JSON.stringify({ id, method, params }));
-    }, 5000);
+    this.client.addEventListener("close", () => {
+      if (this.client != null) {
+        console.log("websocket connection lost, trying to re-connect");
+        setTimeout(this.connect.bind(this), 1000);
+      }
+    });
+    this.client.addEventListener("error", (err) => {
+      console.error("websocket encountered error:", err.message);
+      this.client.close();
+    });
   }
 
   componentWillUnmount() {
-    this.client.close();
-    clearInterval(this.timer);
+    const ws = this.client;
+    this.client = null; // Indicates we really want to close the socket.
+    ws.close();
   }
 
   handleMessage(wsMessage) {
@@ -109,15 +116,15 @@ class App extends React.Component {
     }
 
     switch (this.state.content.type) {
-    case "photos":
-      return <Photos data={this.state.content.data} ref={this.contentRef} />
-    case "video":
-      return <Video data={this.state.content.data} ref={this.contentRef} />
-    case "site":
-      return <Site data={this.state.content.data} ref={this.contentRef} />
-    default:
-      console.error("unknown content type: " + this.state.content.type);
-      return null;
+      case "photos":
+        return <Photos data={this.state.content.data} ref={this.contentRef} />;
+      case "video":
+        return <Video data={this.state.content.data} ref={this.contentRef} />;
+      case "site":
+        return <Site data={this.state.content.data} ref={this.contentRef} />;
+      default:
+        console.error("unknown content type: " + this.state.content.type);
+        return null;
     }
   }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/c0deaddict/neon-display/display"
+	"github.com/c0deaddict/neon-display/display/photos"
 )
 
 var (
@@ -57,7 +58,10 @@ func loadConfig(configFile string) (display.Config, error) {
 		HalSocketPath: "/run/neon-display/hal.sock",
 		WebBind:       "127.0.0.1",
 		WebPort:       8080,
-		PhotosPath:    "/var/lib/neon-display/photos",
+		Photos: photos.Config{
+			AlbumsPath: "/var/lib/neon-display/photos",
+			CachePath:  "/var/lib/neon-display/cache",
+		},
 	}
 
 	contents, err := ioutil.ReadFile(configFile)

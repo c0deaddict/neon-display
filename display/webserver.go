@@ -72,8 +72,8 @@ func (d *Display) startWebserver() error {
 			Logger()
 	})))
 
-	if d.config.PhotosPath != "" {
-		r.StaticFS("/photo", http.Dir(d.config.PhotosPath))
+	if d.config.Photos.AlbumsPath != "" {
+		r.StaticFS("/photo", http.Dir(d.config.Photos.AlbumsPath))
 	}
 
 	// Videos must be able to be streamed, Gin's r.StaticFS can't do that.
@@ -93,6 +93,8 @@ func (d *Display) startWebserver() error {
 	r.POST("/show/:title", d.gotoContentHandler)
 	r.POST("/pause", d.pauseContentHandler)
 	r.POST("/resume", d.resumeContentHandler)
+	// Show a site (like chrome://gpu for ex), need to pass url and title.
+	// r.POST("/show-site", d.showSiteHandler)
 	r.NoRoute(func(c *gin.Context) {
 		c.FileFromFS(c.Request.URL.Path, http.FS(fsys))
 	})

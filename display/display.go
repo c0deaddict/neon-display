@@ -14,6 +14,7 @@ import (
 
 	"github.com/c0deaddict/neon-display/display/homeassistant"
 	"github.com/c0deaddict/neon-display/display/nats_helper"
+	"github.com/c0deaddict/neon-display/display/photos"
 	"github.com/c0deaddict/neon-display/display/ws_proto"
 	pb "github.com/c0deaddict/neon-display/hal_proto"
 )
@@ -22,7 +23,7 @@ type Config struct {
 	HalSocketPath string             `json:"hal_socket_path"`
 	WebBind       string             `json:"web_bind"`
 	WebPort       uint16             `json:"web_port"`
-	PhotosPath    string             `json:"photos_path,omitempty"`
+	Photos        photos.Config      `json:"photos"`
 	VideosPath    string             `json:"videos_path,omitempty"`
 	Sites         []Site             `json:"sites"`
 	InitTitle     string             `json:"init_title"`
@@ -178,12 +179,12 @@ func (d *Display) handleEvent(event *pb.Event) {
 			d.startOffTimer()
 		}
 
-	case pb.EventSource_RedButton:
+	case pb.EventSource_YellowButton:
 		if event.State {
 			d.prevContent()
 		}
 
-	case pb.EventSource_YellowButton:
+	case pb.EventSource_RedButton:
 		if event.State {
 			d.nextContent()
 		}

@@ -1,42 +1,42 @@
-import esbuild from 'esbuild';
-import htmlPlugin from '@chialab/esbuild-plugin-html';
-import liveServer from 'live-server';
+import esbuild from "esbuild";
+import htmlPlugin from "@chialab/esbuild-plugin-html";
+import liveServer from "live-server";
 
 let serve = false;
 
 let options = {
-  entryPoints: ['src/index.html'],
-  outdir: 'dist',
+  entryPoints: ["src/index.html"],
+  outdir: "dist",
   bundle: true,
   plugins: [
     htmlPlugin({
-      scriptsTarget: 'es2015',
-      modulesTarget: 'es2020',
+      scriptsTarget: "es2015",
+      modulesTarget: "es2020",
     }),
   ],
 };
 
 for (var arg of process.argv.slice(2)) {
   switch (arg) {
-  case '--minify':
-    options.minify = true;
-    break;
+    case "--minify":
+      options.minify = true;
+      break;
 
-  case '--watch':
-    options.watch = {
-      onRebuild(error, result) {
-        if (error) console.error('watch build failed:', error);
-      },
-    };
-    break;
+    case "--watch":
+      options.watch = {
+        onRebuild(error, result) {
+          if (error) console.error("watch build failed:", error);
+        },
+      };
+      break;
 
-  case '--serve':
-    serve = true;
-    break;
+    case "--serve":
+      serve = true;
+      break;
 
-  default:
-    console.error('unknown command line argument: ', arg);
-    break;
+    default:
+      console.error("unknown command line argument: ", arg);
+      break;
   }
 }
 

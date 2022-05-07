@@ -25,11 +25,10 @@ It has attached:
 ## TODO
 
 - allow photo albums and videos to have a Order in the filename, eg. "100_Hondjes" or "200_Video title.webm"
-- reconnect to websocket if connection is lost
 - read exif information photos (and cache this, test perf on pi)
-- resize photos (and cache) to the size needed by the display
-  (https://stackoverflow.com/a/67678654)
-- swap red/yellow buttons
+- store content list in display struct, refresh on demand via webserver call.
+- implement pause/resume for slideshow.
+- chromium is missing v4l2 so it can't hw decode videos.
 
 ## Debugging
 

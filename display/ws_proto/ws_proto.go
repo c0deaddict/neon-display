@@ -49,9 +49,10 @@ type Command struct {
 }
 
 type Photo struct {
-	ImagePath string `json:"image_path"`
-	Caption   string `json:"caption"`
-	Date      string `json:"date"`
+	ImagePath   string  `json:"image_path"`
+	Description *string `json:"description,omitempty"`
+	DateTime    *string `json:"datetime,omitempty"`
+	Camera      *string `json:"camera,omitempty"`
 }
 
 type ShowContent struct {

@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/c0deaddict/neon-display/display/photos"
 	"github.com/c0deaddict/neon-display/display/ws_proto"
 	"github.com/rs/zerolog/log"
 )
@@ -44,7 +45,7 @@ func (list contentList) Find(title string) (int, bool) {
 func (d *Display) listContent() contentList {
 	list := make([]content, 0)
 
-	albums, err := d.readAlbums()
+	albums, err := photos.ReadAlbums(d.config.Photos)
 	if err != nil {
 		log.Error().Err(err).Msg("read albums")
 	} else {
