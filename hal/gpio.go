@@ -37,6 +37,7 @@ func watchPir(h *Hal) (*gpiod.Line, error) {
 }
 
 func watchButton(h *Hal, pin int, source pb.EventSource) (*gpiod.Line, error) {
+	// TODO: add time between previous event? (eg. how long was the button pressed?)
 	line, err := gpiod.RequestLine(gpioDevice, pin,
 		gpiod.WithPullUp,
 		gpiod.WithBothEdges,

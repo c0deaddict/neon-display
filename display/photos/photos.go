@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"time"
 
 	"github.com/c0deaddict/neon-display/display/ws_proto"
 	"github.com/rs/zerolog/log"
@@ -58,20 +57,19 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 			}
 
 			if tags != nil {
-				indexedTags := make(map[string]interface{})
-				for _, t := range tags {
-					indexedTags[t.TagName] = t.Value
-					log.Info().Msgf("%v = %v", t.TagName, t.Value)
-				}
-
-				if value, ok := indexedTags["DateTimeOriginal"]; ok {
-					dt := value.(time.Time).Format(time.RFC3339)
+				if value, ok := tags["DateTimeOriginal"]; ok {
+					dt := value.(string)
 					p.DateTime = &dt
 				}
 
-				if value, ok := indexedTags["UserComment"]; ok {
+				if value, ok := tags["UserComment"]; ok {
 					s := value.(string)
 					p.Description = &s
+				}
+
+				if value, ok := tags["Model"]; ok {
+					s := value.(string)
+					p.Camera = &s
 				}
 			}
 

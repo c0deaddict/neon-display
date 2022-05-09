@@ -17,15 +17,23 @@ export default class Photos extends React.Component {
     return (this.state.index + 1) / this.props.data.photos.length;
   }
 
-  componentDidMount() {
+  startTimer() {
     this.timer = setInterval(
       this.nextPhoto.bind(this),
       this.props.data.delay_seconds * 1000
     );
   }
 
-  componentWillUnmount() {
+  stopTimer() {
     clearInterval(this.timer);
+  }
+
+  componentDidMount() {
+    this.startTimer();
+  }
+
+  componentWillUnmount() {
+    this.stopTimer();
   }
 
   nextPhoto() {
@@ -34,11 +42,11 @@ export default class Photos extends React.Component {
   }
 
   pause() {
-    console.error("not implemented");
+    this.stopTimer();
   }
 
   resume() {
-    console.error("not implemented");
+    this.startTimer();
   }
 
   render() {
@@ -49,6 +57,11 @@ export default class Photos extends React.Component {
         style={{ backgroundColor: this.getBackgroundColor() }}
       >
         <img src={"/photo/" + photo.image_path} />
+        <div className="photo-info">
+          <div className="photo-datetime">{photo.datetime}</div>
+          <div className="photo-description">{photo.description}</div>
+          <div className="photo-camera">{photo.camera}</div>
+        </div>
         <ProgressBar progress={this.getProgress()} />
       </div>
     );

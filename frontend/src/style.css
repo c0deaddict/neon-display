@@ -27,6 +27,14 @@ video {
   height: 100%;
 }
 
+.photo-info {
+  position: absolute;
+  bottom: 0.5em;
+  left: 0.5em;
+  font-size: 1.5em;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 .message {
   position: absolute;
   top: 0.5em;
@@ -40,7 +48,7 @@ video {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 0.5em;
+  height: 3px;
 }
 
 .progress-bar .progress {

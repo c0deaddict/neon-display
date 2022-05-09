@@ -3,8 +3,6 @@ module github.com/c0deaddict/neon-display
 go 1.16
 
 require (
-	github.com/dsoprea/go-exif/v3 v3.0.0-20210625224831-a6301f85c82b
-	github.com/dsoprea/go-logging v0.0.0-20200710184922-b02d349568dd // indirect
 	github.com/gin-contrib/logger v0.2.2
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.10.1 // indirect
