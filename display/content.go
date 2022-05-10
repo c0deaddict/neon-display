@@ -2,7 +2,6 @@ package display
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 
 	"github.com/c0deaddict/neon-display/display/photos"
@@ -10,14 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type contentTarget interface {
-	sendMessage(msg ws_proto.ServerMessage) error
-}
-
 type content interface {
 	Title() string
 	Order() int
 	Show() (*ws_proto.ShowContent, error)
+	String() string
 }
 
 type contentList []content
@@ -72,34 +68,45 @@ func (d *Display) listContent() contentList {
 	return result
 }
 
-func (d *Display) initContent() error {
-	list := d.listContent()
-	if list.Len() == 0 {
+func (d *Display) refreshContent() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.content = d.listContent()
+	if d.content.Len() == 0 {
 		return fmt.Errorf("no content found")
 	}
 
 	log.Info().Msg("found content:")
-	for _, c := range list {
-		log.Info().Msgf("%v \"%s\"", reflect.TypeOf(c), c.Title())
+	for _, c := range d.content {
+		log.Info().Msgf("%s", c)
 	}
 
-	if d.config.InitTitle != "" {
-		if index, ok := list.Find(d.config.InitTitle); ok {
-			d.currentContent = list[index]
-			log.Info().Msgf("starting with content: %s", d.currentContent.Title())
+	selected := ""
+	if d.current >= 0 {
+		selected = d.content[d.current].Title()
+	} else {
+		selected = d.config.InitTitle
+	}
+
+	if selected != "" {
+		if index, ok := d.content.Find(selected); ok {
+			d.current = index
+			log.Info().Msgf("selected content: %s", d.content[index])
 		} else {
-			log.Warn().Msgf("init content not found: %s", d.config.InitTitle)
+			log.Warn().Msgf("selected content not found: %s", selected)
 		}
 	}
-	if d.currentContent == nil {
-		d.currentContent = list[0]
+
+	if d.current < 0 {
+		d.current = 0
 	}
 
 	return nil
 }
 
-func (d *Display) showContentOnTarget(t contentTarget) {
-	show, err := d.currentContent.Show()
+func (d *Display) showContent() {
+	show, err := d.content[d.current].Show()
 	if err != nil {
 		log.Error().Err(err).Msg("show content")
 		return
@@ -111,37 +118,30 @@ func (d *Display) showContentOnTarget(t contentTarget) {
 		return
 	}
 
-	err = t.sendMessage(*msg)
+	err = d.sendMessage(*msg)
 	if err != nil {
 		log.Error().Err(err).Msg("send show content command")
 	}
 }
 
-func (d *Display) setContent(content content) {
-	d.currentContent = content
-	d.showContentOnTarget(d)
-}
-
 func (d *Display) contentStep(step int) {
-	list := d.listContent()
-	if list.Len() == 0 {
-		log.Error().Msg("no content found")
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if len(d.content) == 0 {
+		log.Error().Msg("no content")
 		return
 	}
 
-	var c content
-	if index, ok := list.Find(d.currentContent.Title()); ok {
-		index = (index + step) % list.Len()
-		// Go's modulo can return negative numbers.
-		if index < 0 {
-			index = list.Len() + index
-		}
-		c = list[index]
-	} else {
-		c = list[0]
+	index := (d.current + step) % d.content.Len()
+	// Go's modulo can return negative numbers.
+	if index < 0 {
+		index = d.content.Len() + index
 	}
-
-	d.setContent(c)
+	if index != d.current {
+		d.current = index
+		d.showContent()
+	}
 }
 
 func (d *Display) prevContent() {
@@ -153,9 +153,12 @@ func (d *Display) nextContent() {
 }
 
 func (d *Display) gotoContent(title string) bool {
-	list := d.listContent()
-	if index, ok := list.Find(title); ok {
-		d.setContent(list[index])
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if index, ok := d.content.Find(title); ok {
+		d.current = index
+		d.showContent()
 		return true
 	}
 	return false
@@ -169,8 +172,7 @@ func (d *Display) pauseContent() {
 		return
 	}
 
-	// We have d.mu.Lock, use broadcast instead of sendMessage.
-	err = d.broadcast(*msg)
+	err = d.sendMessage(*msg)
 	if err != nil {
 		log.Error().Err(err).Msg("send pause command")
 	}
@@ -184,8 +186,7 @@ func (d *Display) resumeContent() {
 		return
 	}
 
-	// We have d.mu.Lock, use broadcast instead of sendMessage.
-	err = d.broadcast(*msg)
+	err = d.sendMessage(*msg)
 	if err != nil {
 		log.Error().Err(err).Msg("send resume command")
 	}

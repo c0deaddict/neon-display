@@ -15,6 +15,10 @@ type PhotoAlbum struct {
 	config Config
 }
 
+func (p PhotoAlbum) String() string {
+	return fmt.Sprintf("PhotoAlbum %s", p.title)
+}
+
 func (p PhotoAlbum) Title() string {
 	return p.title
 }

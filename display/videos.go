@@ -1,6 +1,7 @@
 package display
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,10 @@ import (
 type Video struct {
 	title string
 	path  string
+}
+
+func (v Video) String() string {
+	return fmt.Sprintf("Video %s", v.title)
 }
 
 func (v Video) Title() string {

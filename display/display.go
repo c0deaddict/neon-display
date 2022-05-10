@@ -33,23 +33,25 @@ type Config struct {
 }
 
 type Display struct {
-	config         Config
-	nc             *nats.Conn
-	currentContent content
-	hal            pb.HalClient
-	offTimer       *time.Timer
+	config   Config
+	nc       *nats.Conn
+	hal      pb.HalClient
+	offTimer *time.Timer
 
 	mu      sync.Mutex // protects clients, power and also serves as WriteMessage sync.
 	clients []client
 	power   bool
+
+	current int
+	content contentList
 }
 
 func New(config Config) Display {
-	return Display{config: config}
+	return Display{config: config, current: -1}
 }
 
 func (d *Display) Run(ctx context.Context) {
-	err := d.initContent()
+	err := d.refreshContent()
 	if err != nil {
 		log.Fatal().Err(err).Msg("init content")
 	}

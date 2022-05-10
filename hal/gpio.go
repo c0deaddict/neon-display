@@ -25,28 +25,33 @@ type gpioWatcher struct {
 }
 
 func watchPir(h *Hal) (*gpiod.Line, error) {
+	last := time.Now()
 	line, err := gpiod.RequestLine(gpioDevice, pirPin,
 		gpiod.WithBothEdges,
 		gpiod.WithEventHandler(func(evt gpiod.LineEvent) {
 			h.publishEvent(&pb.Event{
-				Source: pb.EventSource_Pir,
-				State:  evt.Type == gpiod.LineEventRisingEdge,
+				Source:    pb.EventSource_Pir,
+				State:     evt.Type == gpiod.LineEventRisingEdge,
+				ElapsedMs: uint64(time.Since(last).Milliseconds()),
 			})
+			last = time.Now()
 		}))
 	return line, err
 }
 
 func watchButton(h *Hal, pin int, source pb.EventSource) (*gpiod.Line, error) {
-	// TODO: add time between previous event? (eg. how long was the button pressed?)
+	last := time.Now()
 	line, err := gpiod.RequestLine(gpioDevice, pin,
 		gpiod.WithPullUp,
 		gpiod.WithBothEdges,
 		gpiod.WithDebounce(debounceDelay),
 		gpiod.WithEventHandler(func(evt gpiod.LineEvent) {
 			h.publishEvent(&pb.Event{
-				Source: source,
-				State:  evt.Type == gpiod.LineEventRisingEdge,
+				Source:    source,
+				State:     evt.Type == gpiod.LineEventRisingEdge,
+				ElapsedMs: uint64(time.Since(last).Milliseconds()),
 			})
+			last = time.Now()
 		}))
 	return line, err
 }

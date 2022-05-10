@@ -1,11 +1,19 @@
 package display
 
-import "github.com/c0deaddict/neon-display/display/ws_proto"
+import (
+	"fmt"
+
+	"github.com/c0deaddict/neon-display/display/ws_proto"
+)
 
 type Site struct {
 	SiteTitle string `json:"title"`
 	SiteOrder int    `json:"order"`
 	Url       string `json:"url"`
+}
+
+func (s Site) String() string {
+	return fmt.Sprintf("Site %s", s.SiteTitle)
 }
 
 func (s Site) Title() string {

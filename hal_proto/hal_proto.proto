@@ -21,6 +21,7 @@ service Hal {
 message Event {
   EventSource source = 1;
   bool state = 2;
+  uint64 elapsed_ms = 3;
 }
 
 enum EventSource {

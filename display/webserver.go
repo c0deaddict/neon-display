@@ -25,19 +25,6 @@ import (
 
 type client struct {
 	*websocket.Conn
-	display *Display
-}
-
-func (c client) sendMessage(msg ws_proto.ServerMessage) error {
-	c.display.mu.Lock() // ensure there is no more than one websocket writer.
-	defer c.display.mu.Unlock()
-
-	err := c.WriteJSON(msg)
-	if err != nil {
-		log.Warn().Err(err).Msgf("send message to client %p", &c)
-	}
-
-	return nil
 }
 
 func prometheusHandler() gin.HandlerFunc {
@@ -80,19 +67,44 @@ func (d *Display) startWebserver() error {
 	// Use http.ServeFile, which does support streaming (ranges).
 	// https://stackoverflow.com/questions/63221721/serve-video-with-go-gin
 	if d.config.VideosPath != "" {
-		r.GET("/video/:name", d.videoHandler)
+		r.GET("/video/:name", func(c *gin.Context) {
+			name := c.Param("name")
+			filepath := path.Join(d.config.VideosPath, name)
+			http.ServeFile(c.Writer, c.Request, filepath)
+		})
 	}
 
 	r.GET("/ws", func(c *gin.Context) {
 		d.websocketHandler(c.Writer, c.Request)
 	})
 	r.GET("/metrics", prometheusHandler())
-	r.GET("/content", d.listContentHandler)
-	r.POST("/event/:name", d.userEvent)
+	r.POST("/event/:name", d.triggerEvent)
 	r.POST("/message", d.messageHandler)
-	r.POST("/show/:title", d.gotoContentHandler)
-	r.POST("/pause", d.pauseContentHandler)
-	r.POST("/resume", d.resumeContentHandler)
+
+	r.GET("/content", func(c *gin.Context) {
+		result := make([]string, d.content.Len())
+		for i, c := range d.content {
+			result[i] = c.Title()
+		}
+		c.JSON(http.StatusOK, result)
+	})
+	r.POST("/content/refresh", func(c *gin.Context) {
+		err := d.refreshContent()
+		if err != nil {
+			log.Error().Err(err).Msg("refresh content")
+			c.Status(http.StatusInternalServerError)
+		} else {
+			c.Status(http.StatusNoContent)
+		}
+	})
+	r.POST("/content/show", func(c *gin.Context) {
+		if d.gotoContent(c.Query("title")) {
+			c.Status(http.StatusNoContent)
+		} else {
+			c.Status(http.StatusBadRequest)
+		}
+	})
+
 	// Show a site (like chrome://gpu for ex), need to pass url and title.
 	// r.POST("/show-site", d.showSiteHandler)
 	r.NoRoute(func(c *gin.Context) {
@@ -111,7 +123,7 @@ func (d *Display) startWebserver() error {
 }
 
 /// Fake a HAL event.
-func (d *Display) userEvent(c *gin.Context) {
+func (d *Display) triggerEvent(c *gin.Context) {
 	switch c.Param("name") {
 	case "motion":
 		d.handleEvent(&pb.Event{
@@ -164,7 +176,12 @@ func (d *Display) showMessage(msg ws_proto.ShowMessage) {
 		log.Error().Err(err).Msg("make show message command")
 	}
 
-	d.sendMessage(*cmd)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	err = d.sendMessage(*cmd)
+	if err != nil {
+		log.Error().Err(err).Msg("show message")
+	}
 }
 
 func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,11 +196,9 @@ func (d *Display) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	client := client{conn, d}
+	client := client{conn}
 	d.addClient(client)
-
-	// Show the current content on the client.
-	d.showContentOnTarget(client)
+	d.showContentOnClient(client)
 
 	for {
 		messageType, message, err := client.ReadMessage()
@@ -228,8 +243,6 @@ func (d *Display) handleMessage(c client, message []byte) {
 		return
 	}
 
-	d.mu.Lock()
-	defer d.mu.Unlock()
 	err = c.WriteJSON(msg)
 	if err != nil {
 		log.Warn().Err(err).Msgf("send message to client %p", &c)
@@ -257,15 +270,30 @@ func (d *Display) removeClient(c client) {
 	log.Warn().Msgf("remove client: %p is not found", &c)
 }
 
-func (d *Display) sendMessage(msg ws_proto.ServerMessage) error {
-	d.mu.Lock() // also ensures there is no more than one websocket writer.
+func (d *Display) showContentOnClient(c client) {
+	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	return d.broadcast(msg)
+	show, err := d.content[d.current].Show()
+	if err != nil {
+		log.Error().Err(err).Msg("show content")
+		return
+	}
+
+	msg, err := ws_proto.MakeCommandMessage(ws_proto.ShowContentCommand, show)
+	if err != nil {
+		log.Error().Err(err).Msg("make show command message")
+		return
+	}
+
+	err = c.WriteJSON(msg)
+	if err != nil {
+		log.Warn().Err(err).Msgf("send message to client %p", &c)
+	}
 }
 
-/// Requires d.mu.Lock to be held.
-func (d *Display) broadcast(msg ws_proto.ServerMessage) error {
+/// Requires d.mu.Lock to be held to prevent more than one websocket writer being active at any time.
+func (d *Display) sendMessage(msg ws_proto.ServerMessage) error {
 	for _, c := range d.clients {
 		err := c.WriteJSON(msg)
 		if err != nil {
@@ -274,41 +302,4 @@ func (d *Display) broadcast(msg ws_proto.ServerMessage) error {
 	}
 
 	return nil
-}
-
-func (d *Display) videoHandler(c *gin.Context) {
-	name := c.Param("name")
-	filepath := path.Join(d.config.VideosPath, name)
-	http.ServeFile(c.Writer, c.Request, filepath)
-}
-
-func (d *Display) gotoContentHandler(c *gin.Context) {
-	if d.gotoContent(c.Param("title")) {
-		c.Status(http.StatusNoContent)
-	} else {
-		c.Status(http.StatusBadRequest)
-	}
-}
-
-func (d *Display) listContentHandler(c *gin.Context) {
-	list := d.listContent()
-	result := make([]string, len(list))
-	for i, c := range list {
-		result[i] = c.Title()
-	}
-	c.JSON(http.StatusOK, result)
-}
-
-func (d *Display) pauseContentHandler(c *gin.Context) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.pauseContent()
-	c.Status(http.StatusOK)
-}
-
-func (d *Display) resumeContentHandler(c *gin.Context) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.resumeContent()
-	c.Status(http.StatusOK)
 }
