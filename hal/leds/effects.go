@@ -10,6 +10,10 @@ type LedEffect interface {
 func effects() []LedEffect {
 	return []LedEffect{
 		&SolidLedEffect{},
+		&BreatheLedEffect{
+			wait:  fpsWait(60.0),
+			cycle: 60.0 * 5.0, // repeat every 5 seconds.
+		},
 	}
 }
 
@@ -30,4 +34,8 @@ func getEffect(name string) LedEffect {
 		}
 	}
 	return nil
+}
+
+func fpsWait(fps float64) time.Duration {
+	return time.Duration(1000000.0/fps) * time.Microsecond
 }

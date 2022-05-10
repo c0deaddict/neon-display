@@ -29,7 +29,7 @@ type Leds struct {
 	mu         sync.Mutex
 	state      bool
 	brightness int
-	color      uint32
+	color      color
 	effect     LedEffect
 	timer      *time.Timer
 }
@@ -85,7 +85,7 @@ func (l *Leds) Update(s *pb.LedState) *pb.LedState {
 	}
 
 	if s.Color != nil {
-		l.color = *s.Color
+		l.color = color(*s.Color)
 	}
 
 	if s.Effect != nil {
@@ -93,10 +93,11 @@ func (l *Leds) Update(s *pb.LedState) *pb.LedState {
 	}
 
 	brightness := uint32(l.brightness)
+	color := uint32(l.color)
 	result := pb.LedState{
 		State:      &l.state,
 		Brightness: &brightness,
-		Color:      &l.color,
+		Color:      &color,
 	}
 	if l.effect != nil {
 		name := l.effect.Name()
@@ -110,9 +111,9 @@ func (l *Leds) Update(s *pb.LedState) *pb.LedState {
 }
 
 /// Requires l.mu locked.
-func (l *Leds) fill(color uint32) {
+func (l *Leds) fill(c color) {
 	for i := 0; i < len(l.dev.Leds(0)); i++ {
-		l.dev.Leds(0)[i] = color
+		l.dev.Leds(0)[i] = uint32(c)
 	}
 }
 
