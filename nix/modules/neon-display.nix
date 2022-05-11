@@ -43,6 +43,7 @@ in {
     services.neon-display.settings = {
       web_port = 8080;
       hal_socket_path = "/var/run/neon-display/hal.sock";
+      cache_path = "/var/lib/neon-display/cache";
     };
 
     services.cage = {
@@ -67,6 +68,8 @@ in {
       after = [ "neon-display-hal.service" ];
       description = "neon-display";
 
+      path = [ pkgs.exiftool ];
+
       serviceConfig = {
         Type = "simple";
         ExecStart = "${cfg.package}/bin/display -config ${configFile}";
@@ -74,7 +77,38 @@ in {
         User = cfg.user;
         Group = cfg.group;
 
-        # TODO; hardening
+        StateDirectory = "neon-display";
+
+        # Hardening
+        CapabilityBoundingSet = "";
+        LockPersonality = true;
+        MemoryDenyWriteExecute = true;
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        PrivateTmp = true;
+        PrivateUsers = true;
+        ProcSubset = "pid";
+        ProtectClock = true;
+        ProtectControlGroups = true;
+        ProtectHome = true;
+        ProtectHostname = true;
+        ProtectKernelLogs = true;
+        ProtectKernelModules = true;
+        ProtectKernelTunables = true;
+        ProtectProc = "invisible";
+        ProtectSystem = "strict";
+        ReadOnlyPaths = [ configFile ]
+          ++ lib.optional (cfg.settings ? photos_path)
+          [ cfg.settings.photos_path ]
+          ++ lib.optional (cfg.settings ? videos_path)
+          [ cfg.settings.videos_path ];
+        ReadWritePaths = [ cfg.settings.hal_socket_path ];
+        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+        RestrictNamespaces = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        SystemCallFilter = [ "@system-service" "~@privileged" "~@resources" ];
+        UMask = "0077";
       };
     };
 
@@ -113,7 +147,7 @@ in {
         # ProtectSystem = "strict";
         # ReadOnlyPaths = [ ];
         # ReadWritePaths = [ ];
-        # RestrictAddressFamilies = [ "AF_UNIX" ];
+        RestrictAddressFamilies = [ "AF_UNIX" ];
         # RestrictNamespaces = true;
         # RestrictRealtime = true;
         # RestrictSUIDSGID = true;

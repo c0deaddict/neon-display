@@ -20,7 +20,7 @@
           npmlock2nix = import inputs.npmlock2nix { pkgs = final; };
         };
 
-      nixosModules.neon-display = import ./nix/modules/neon-display;
+      nixosModules.neon-display = import ./nix/modules/neon-display.nix;
       nixosModule = self.nixosModules.neon-display;
       packages = forAllSystems (system:
         import ./nix/pkgs/default.nix rec {
