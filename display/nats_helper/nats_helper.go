@@ -49,7 +49,7 @@ func Connect(config *Config) (*nats.Conn, error) {
 
 	opts = append(opts, nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
 		disconnects.Inc()
-		log.Warn().Err(err).Msgf("Nats got disconnected from %v")
+		log.Warn().Err(err).Msgf("Nats got disconnected from %v", nc)
 	}))
 	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
 		up.Set(1)

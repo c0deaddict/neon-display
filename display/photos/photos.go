@@ -10,9 +10,9 @@ import (
 )
 
 type PhotoAlbum struct {
-	title  string
-	path   string
-	config Config
+	title     string
+	path      string
+	cachePath string
 }
 
 func (p PhotoAlbum) String() string {
@@ -51,7 +51,7 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 	for _, file := range files {
 		if file.Type().IsRegular() {
 			filename := path.Join(p.path, file.Name())
-			tags, err := readExif(filename, p.config.CachePath)
+			tags, err := readExif(filename, path.Join(p.cachePath, "exif"))
 			if err != nil {
 				log.Error().Err(err).Msg("read exif")
 			}
@@ -84,12 +84,12 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 	return photos, nil
 }
 
-func ReadAlbums(cfg Config) ([]PhotoAlbum, error) {
-	if cfg.AlbumsPath == "" {
+func ReadAlbums(albumsPath string, cachePath string) ([]PhotoAlbum, error) {
+	if albumsPath == "" {
 		return nil, nil
 	}
 
-	files, err := os.ReadDir(cfg.AlbumsPath)
+	files, err := os.ReadDir(albumsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -98,9 +98,9 @@ func ReadAlbums(cfg Config) ([]PhotoAlbum, error) {
 	for _, file := range files {
 		if file.IsDir() {
 			albums = append(albums, PhotoAlbum{
-				title:  file.Name(),
-				path:   path.Join(cfg.AlbumsPath, file.Name()),
-				config: cfg,
+				title:     file.Name(),
+				path:      path.Join(albumsPath, file.Name()),
+				cachePath: cachePath,
 			})
 		}
 	}

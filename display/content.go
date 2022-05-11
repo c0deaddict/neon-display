@@ -41,7 +41,7 @@ func (list contentList) Find(title string) (int, bool) {
 func (d *Display) listContent() contentList {
 	list := make([]content, 0)
 
-	albums, err := photos.ReadAlbums(d.config.Photos)
+	albums, err := photos.ReadAlbums(d.config.PhotosPath, d.config.CachePath)
 	if err != nil {
 		log.Error().Err(err).Msg("read albums")
 	} else {
