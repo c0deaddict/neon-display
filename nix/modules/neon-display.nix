@@ -25,7 +25,34 @@ in {
 
     browser = mkOption {
       type = types.str;
-      default = "${pkgs.firefox}/bin/firefox -kiosk";
+      # Firefox hardware acceleration is not working properly on Raspberry
+      # Pi's. Without it Grafana is way too heavy, pushing the CPU temperature
+      # over the limit of 85C.
+      #
+      # Chromium is run in XWayland. Ozone with --use-gl does not work
+      # currently.  These flags are used to enable HW acceleration on Raspberry
+      # Pi's.
+      #
+      # Video acceleration is not working yet, Chromium needs to be compiled
+      # with V4L2 which is not enabled by default.
+      default = let
+        flags = [
+          "--ignore-gpu-blocklist"
+          "--enable-gpu-rasterization"
+          "--enable-zero-copy"
+          "--enable-drdc"
+          "--canvas-oop-rasterization"
+          "--enable-accelerated-video-decode"
+          "--use-gl=egl"
+          "--enable-features=VaapiVideoDecoder"
+          "--disable-features=UseChromeOSDirectVideoDecoder"
+          "--remote-debugging-port=9222"
+          "--kiosk"
+        ];
+      in "${pkgs.ungoogled-chromium}/bin/chromium ${
+        concatStringsSep " " flags
+      }";
+      example = literalExpression ''"''${pkgs.firefox}/bin/firefox -kiosk"'';
     };
 
     package = mkOption {
@@ -65,7 +92,8 @@ in {
 
     systemd.services.neon-display = {
       wantedBy = [ "multi-user.target" ];
-      after = [ "neon-display-hal.service" ];
+      wants = [ "network.target" ];
+      after = [ "network.target" "neon-display-hal.service" ];
       description = "neon-display";
 
       path = [ pkgs.exiftool ];
@@ -93,7 +121,6 @@ in {
           cfg.settings.photos_path)
           ++ (lib.optional (cfg.settings ? videos_path)
             cfg.settings.videos_path);
-        BindPaths = [ cfg.settings.cache_path ];
 
         CapabilityBoundingSet = "";
         LockPersonality = true;
@@ -105,7 +132,8 @@ in {
         ProcSubset = "pid";
         ProtectClock = true;
         ProtectControlGroups = true;
-        ProtectHome = true;
+        # Does not play well with TemporaryFileSystem.
+        # ProtectHome = true;
         ProtectHostname = true;
         ProtectKernelLogs = true;
         ProtectKernelModules = true;

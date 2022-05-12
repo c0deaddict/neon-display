@@ -158,6 +158,7 @@ func (d *Display) gotoContent(title string) bool {
 
 	if index, ok := d.content.Find(title); ok {
 		d.current = index
+		// TODO: when content is a photoalbum this call can take a loooong time.
 		d.showContent()
 		return true
 	}
