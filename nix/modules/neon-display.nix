@@ -170,26 +170,26 @@ in {
 
         # Hardening
         # CapabilityBoundingSet = "";
-        # LockPersonality = true;
+        LockPersonality = true;
         # MemoryDenyWriteExecute = true;
         # NoNewPrivileges = true;
-        # PrivateTmp = true;
-        # PrivateUsers = true;
-        # ProcSubset = "pid";
-        # ProtectClock = true;
+        PrivateTmp = true;
+        PrivateUsers = true;
+        ProcSubset = "pid";
+        ProtectClock = true;
         # ProtectHome = true;
-        # ProtectHostname = true;
-        # ProtectKernelLogs = true;
-        # ProtectKernelModules = true;
-        # ProtectKernelTunables = true;
+        ProtectHostname = true;
+        ProtectKernelLogs = true;
+        ProtectKernelModules = true;
+        ProtectKernelTunables = true;
         # ProtectProc = "invisible";
         # ProtectSystem = "strict";
         # ReadOnlyPaths = [ ];
         # ReadWritePaths = [ ];
         RestrictAddressFamilies = [ "AF_UNIX" ];
-        # RestrictNamespaces = true;
-        # RestrictRealtime = true;
-        # RestrictSUIDSGID = true;
+        RestrictNamespaces = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
         # SystemCallFilter = [ "@system-service" "~@privileged" "~@resources" ];
         UMask = "0007"; # required to have rwx for users group on hal.sock
       };
