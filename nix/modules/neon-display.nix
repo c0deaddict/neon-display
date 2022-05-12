@@ -73,6 +73,7 @@ in {
       serviceConfig = {
         Type = "simple";
         ExecStart = "${cfg.package}/bin/display -config ${configFile}";
+        Restart = "on-failure";
 
         User = cfg.user;
         Group = cfg.group;
@@ -80,6 +81,20 @@ in {
         StateDirectory = "neon-display";
 
         # Hardening
+        TemporaryFileSystem = "/:ro";
+        BindReadOnlyPaths = [
+          "/nix/store"
+          "-/etc/resolv.conf"
+          "-/etc/nsswitch.conf"
+          "-/etc/hosts"
+          "-/etc/localtime"
+          cfg.settings.hal_socket_path
+        ] ++ (lib.optional (cfg.settings ? photos_path)
+          cfg.settings.photos_path)
+          ++ (lib.optional (cfg.settings ? videos_path)
+            cfg.settings.videos_path);
+        BindPaths = [ cfg.settings.cache_path ];
+
         CapabilityBoundingSet = "";
         LockPersonality = true;
         MemoryDenyWriteExecute = true;
@@ -95,14 +110,9 @@ in {
         ProtectKernelLogs = true;
         ProtectKernelModules = true;
         ProtectKernelTunables = true;
+        # Using temporary filesystem instead of this.
+        # ProtectSystem = "strict";
         ProtectProc = "invisible";
-        ProtectSystem = "strict";
-        ReadOnlyPaths = [ configFile ]
-          ++ lib.optional (cfg.settings ? photos_path)
-          [ cfg.settings.photos_path ]
-          ++ lib.optional (cfg.settings ? videos_path)
-          [ cfg.settings.videos_path ];
-        ReadWritePaths = [ cfg.settings.hal_socket_path ];
         RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
         RestrictNamespaces = true;
         RestrictRealtime = true;
@@ -122,6 +132,7 @@ in {
         Type = "simple";
         ExecStart =
           "${cfg.package}/bin/hal -hal-socket-path ${cfg.settings.hal_socket_path}";
+        Restart = "on-failure";
 
         User = "root";
         Group = cfg.group;
