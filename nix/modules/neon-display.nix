@@ -71,6 +71,7 @@ in {
       web_port = 8080;
       hal_socket_path = "/var/run/neon-display/hal.sock";
       cache_path = "/var/lib/neon-display/cache";
+      nats = { };
     };
 
     services.cage = {
@@ -120,7 +121,9 @@ in {
         ] ++ (lib.optional (cfg.settings ? photos_path)
           cfg.settings.photos_path)
           ++ (lib.optional (cfg.settings ? videos_path)
-            cfg.settings.videos_path);
+            cfg.settings.videos_path)
+          ++ (lib.optional (cfg.settings.nats ? password_file)
+            cfg.settings.nats.password_file);
 
         CapabilityBoundingSet = "";
         LockPersonality = true;
@@ -169,8 +172,8 @@ in {
         RuntimeDirectory = "neon-display";
 
         # Hardening
-        DeviceAllow = ["/dev/mem" "/dev/vcio" "/dev/gpiochip0"];
-        CapabilityBoundingSet = ["CAP_IPC_LOCK" "CAP_SYS_RAWIO" ];
+        DeviceAllow = [ "/dev/mem" "/dev/vcio" "/dev/gpiochip0" ];
+        CapabilityBoundingSet = [ "CAP_IPC_LOCK" "CAP_SYS_RAWIO" ];
         LockPersonality = true;
         MemoryDenyWriteExecute = true;
         NoNewPrivileges = true;
