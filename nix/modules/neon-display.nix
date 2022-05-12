@@ -169,28 +169,26 @@ in {
         RuntimeDirectory = "neon-display";
 
         # Hardening
-        # CapabilityBoundingSet = "";
+        DeviceAllow = ["/dev/mem" "/dev/vcio" "/dev/gpiochip0"];
+        CapabilityBoundingSet = ["CAP_IPC_LOCK" "CAP_SYS_RAWIO" ];
         LockPersonality = true;
-        # MemoryDenyWriteExecute = true;
-        # NoNewPrivileges = true;
+        MemoryDenyWriteExecute = true;
+        NoNewPrivileges = true;
         PrivateTmp = true;
-        PrivateUsers = true;
-        ProcSubset = "pid";
+        # Root is needed to access /dev/mem.
+        PrivateUsers = false;
         ProtectClock = true;
-        # ProtectHome = true;
         ProtectHostname = true;
         ProtectKernelLogs = true;
         ProtectKernelModules = true;
         ProtectKernelTunables = true;
-        # ProtectProc = "invisible";
-        # ProtectSystem = "strict";
-        # ReadOnlyPaths = [ ];
-        # ReadWritePaths = [ ];
+        # Access is needed to /proc/device-tree/system/linux,revision
+        ProcSubset = "all";
+        ProtectProc = "default";
         RestrictAddressFamilies = [ "AF_UNIX" ];
         RestrictNamespaces = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
-        # SystemCallFilter = [ "@system-service" "~@privileged" "~@resources" ];
         UMask = "0007"; # required to have rwx for users group on hal.sock
       };
     };
