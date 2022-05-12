@@ -6,6 +6,8 @@ import Photos from "./components/photos.jsx";
 import Video from "./components/video.jsx";
 import Site from "./components/site.jsx";
 
+import "./style.css";
+
 class App extends React.Component {
   constructor(props) {
     super(props);

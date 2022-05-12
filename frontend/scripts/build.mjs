@@ -1,17 +1,27 @@
 import esbuild from "esbuild";
-import htmlPlugin from "@chialab/esbuild-plugin-html";
 import liveServer from "live-server";
+import fs from "fs/promises";
+
+import indexHtmlPlugin from "./index-html-plugin.mjs";
 
 let serve = false;
 
+const entryPoint = "src/app.jsx";
+const assetNames = "[name]-[hash]";
+
 let options = {
-  entryPoints: ["src/index.html"],
+  entryPoints: [entryPoint],
   outdir: "dist",
   bundle: true,
+  format: "esm",
+  target: "es2020",
+  metafile: true,
+  assetNames,
+  entryNames: assetNames,
   plugins: [
-    htmlPlugin({
-      scriptsTarget: "es2015",
-      modulesTarget: "es2020",
+    indexHtmlPlugin({
+      entryPoint,
+      htmlTemplate: await fs.readFile("src/index.html", "utf8"),
     }),
   ],
 };
