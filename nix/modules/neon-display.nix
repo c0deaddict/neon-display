@@ -89,11 +89,14 @@ in {
       };
     };
 
-    systemd.services."cage-tty1".after = [ "neon-display.service" ];
+    systemd.services."cage-tty1" = {
+      wants = [ "neon-display.service" ];
+      after = [ "neon-display.service" ];
+    };
 
     systemd.services.neon-display = {
       wantedBy = [ "multi-user.target" ];
-      wants = [ "network.target" ];
+      wants = [ "network.target" "neon-display-hal.service"];
       after = [ "network.target" "neon-display-hal.service" ];
       description = "neon-display";
 
@@ -117,7 +120,7 @@ in {
           "-/etc/nsswitch.conf"
           "-/etc/hosts"
           "-/etc/localtime"
-          cfg.settings.hal_socket_path
+          "/var/run/neon-display"
         ] ++ (lib.optional (cfg.settings ? photos_path)
           cfg.settings.photos_path)
           ++ (lib.optional (cfg.settings ? videos_path)
@@ -172,7 +175,7 @@ in {
         RuntimeDirectory = "neon-display";
 
         # Hardening
-        DeviceAllow = [ "/dev/mem" "/dev/vcio" "/dev/gpiochip0" ];
+        DeviceAllow = [ "/dev/mem" "/dev/vcio" "/dev/vchiq" "/dev/gpiochip0" ];
         CapabilityBoundingSet = [ "CAP_IPC_LOCK" "CAP_SYS_RAWIO" ];
         LockPersonality = true;
         MemoryDenyWriteExecute = true;
