@@ -96,8 +96,8 @@ in {
 
     systemd.services.neon-display = {
       wantedBy = [ "multi-user.target" ];
-      wants = [ "network.target" "neon-display-hal.service"];
-      after = [ "network.target" "neon-display-hal.service" ];
+      wants = [ "network-online.target" "neon-display-hal.service" ];
+      after = [ "network-online.target" "neon-display-hal.service" ];
       description = "neon-display";
 
       path = [ pkgs.exiftool ];
@@ -121,12 +121,8 @@ in {
           "-/etc/hosts"
           "-/etc/localtime"
           "/var/run/neon-display"
-        ] ++ (lib.optional (cfg.settings ? photos_path)
-          cfg.settings.photos_path)
-          ++ (lib.optional (cfg.settings ? videos_path)
-            cfg.settings.videos_path)
-          ++ (lib.optional (cfg.settings.nats ? password_file)
-            cfg.settings.nats.password_file);
+        ] ++ (lib.optional (cfg.settings.nats ? password_file)
+          cfg.settings.nats.password_file);
 
         CapabilityBoundingSet = "";
         LockPersonality = true;
