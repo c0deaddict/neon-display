@@ -38,12 +38,12 @@ func (list contentList) Find(title string) (int, bool) {
 	return 0, false
 }
 
-func (d *Display) listContent() contentList {
+func (d *Display) listContent() (contentList, error) {
 	list := make([]content, 0)
 
 	albums, err := photos.ReadAlbums(d.config.PhotosPath, d.config.CachePath)
 	if err != nil {
-		log.Error().Err(err).Msg("read albums")
+		return nil, fmt.Errorf("read albums: %v", err)
 	} else {
 		for _, album := range albums {
 			list = append(list, album)
@@ -52,7 +52,7 @@ func (d *Display) listContent() contentList {
 
 	videos, err := d.readVideos()
 	if err != nil {
-		log.Error().Err(err).Msg("read videos")
+		return nil, fmt.Errorf("read videos: %v", err)
 	} else {
 		for _, video := range videos {
 			list = append(list, video)
@@ -65,14 +65,18 @@ func (d *Display) listContent() contentList {
 
 	result := contentList(list)
 	sort.Sort(result)
-	return result
+	return result, nil
 }
 
 func (d *Display) refreshContent() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.content = d.listContent()
+	var err error
+	d.content, err = d.listContent()
+	if err != nil {
+		return err
+	}
 	if d.content.Len() == 0 {
 		return fmt.Errorf("no content found")
 	}

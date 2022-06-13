@@ -72,7 +72,7 @@ func (d *Display) Run(ctx context.Context) {
 	// Connect to NATS.
 	nc, err := nats_helper.Connect(&d.config.Nats)
 	if err != nil {
-		log.Error().Err(err).Msg("connect to nats")
+		log.Fatal().Err(err).Msg("connect to nats")
 	} else {
 		defer nc.Close()
 		// Setup subscriptions for LEDs handling.
@@ -162,6 +162,7 @@ func (d *Display) handleEvent(event *pb.Event) {
 
 	switch event.Source {
 	case pb.EventSource_Pir:
+		// TODO: send message to homeassistant (for pir sensor).
 		if event.State {
 			color := "red"
 			d.showMessage(ws_proto.ShowMessage{

@@ -106,6 +106,7 @@ in {
         Type = "simple";
         ExecStart = "${cfg.package}/bin/display -config ${configFile}";
         Restart = "on-failure";
+        RestartSec = 10;
 
         User = cfg.user;
         Group = cfg.group;
