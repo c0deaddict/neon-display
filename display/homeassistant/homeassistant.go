@@ -3,171 +3,65 @@ package homeassistant
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"strings"
 
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	pb "github.com/c0deaddict/neon-display/hal_proto"
 )
 
-const (
-	hostname = "neon"
-	id       = "leds"
-	uniqueId = hostname + "_" + id
+const hostname = "neon"
 
-	topic         = "homeassistant.light." + hostname + "." + id
-	commandTopic  = topic + ".set"
-	stateTopic    = topic + ".state"
-	announceTopic = topic + ".config"
-
-	stateOn  = "ON"
-	stateOff = "OFF"
-)
-
-type config struct {
-	Name                string   `json:"name"`
-	UniqueId            string   `json:"unique_id"`
-	CommandTopic        string   `json:"command_topic"`
-	StateTopic          string   `json:"state_topic"`
-	Schema              string   `json:"schema"`
-	Brightness          bool     `json:"brightness"`
-	Effect              bool     `json:"effect"`
-	ColorMode           bool     `json:"color_mode"`
-	SupportedColorModes []string `json:"supported_color_modes"`
-	EffectList          []string `json:"effect_list"`
+type HomeAssistant struct {
+	hal     pb.HalClient
+	nc      *nats.Conn
+	devices []device
 }
 
-type color struct {
-	R uint8 `json:"r"`
-	G uint8 `json:"g"`
-	B uint8 `json:"b"`
+func New(hal pb.HalClient, nc *nats.Conn) *HomeAssistant {
+	devices := []device{
+		newLedsDevice(hal, hostname, "leds"),
+		newPirDevice(hostname, "pir"),
+		newButtonDevice(hostname, "push-button red", pb.EventSource_RedButton),
+		newButtonDevice(hostname, "push-button yellow", pb.EventSource_YellowButton),
+	}
+	return &HomeAssistant{hal, nc, devices}
 }
 
-type state struct {
-	Brightness uint   `json:"brightness"`
-	ColorMode  string `json:"color_mode"`
-	Color      color  `json:"color"`
-	Effect     string `json:"effect"`
-	State      string `json:"state"`
+func (h *HomeAssistant) announceAll(ctx context.Context) {
+	for _, d := range h.devices {
+		err := d.announce(ctx, h.nc)
+		if err != nil {
+			log.Error().Err(err).Msgf("homeassistant announce: %s", d)
+		}
+	}
 }
 
-type command struct {
-	Brightness *int    `json:"brightness"`
-	Color      *color  `json:"color"`
-	Effect     *string `json:"effect"`
-	State      *string `json:"state"`
-}
-
-func Start(ctx context.Context, hal pb.HalClient, nc *nats.Conn) {
-	_, err := nc.Subscribe("homeassistant.status", func(msg *nats.Msg) {
+func (h *HomeAssistant) Start(ctx context.Context) {
+	_, err := h.nc.Subscribe("homeassistant.status", func(msg *nats.Msg) {
 		if bytes.Compare(msg.Data, []byte("online")) == 0 {
-			err := announce(ctx, hal, nc)
-			if err != nil {
-				log.Error().Err(err).Msg("homeassistant announce")
-			}
+			h.announceAll(ctx)
+
 		}
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("nats subscribe to homeassistant.status")
 	}
 
-	_, err = nc.Subscribe(commandTopic, func(msg *nats.Msg) {
-		var command command
-		err := json.Unmarshal(msg.Data, &command)
+	for _, d := range h.devices {
+		err := d.subscribe(ctx, h.nc)
 		if err != nil {
-			log.Error().Err(err).Msgf("parse homeassistant command %v", msg)
-			return
+			log.Error().Err(err).Msgf("homeassistant subscribe: %s", d)
 		}
-
-		ledState, err := hal.UpdateLeds(ctx, command.ledState())
-		if err != nil {
-			log.Error().Err(err).Msgf("homeassistant command %v", command)
-			return
-		}
-
-		// Transform to HA state and publish.
-		state := state{
-			Brightness: uint(*ledState.Brightness),
-			Effect:     *ledState.Effect,
-			Color: color{
-				R: uint8((*ledState.Color & 0xff)),
-				G: uint8((*ledState.Color >> 8) & 0xff),
-				B: uint8((*ledState.Color >> 16) & 0xff),
-			},
-		}
-		if *ledState.State {
-			state.State = stateOn
-		} else {
-			state.State = stateOff
-		}
-
-		data, err := json.Marshal(&state)
-		if err != nil {
-			log.Error().Err(err).Msg("json marshal state")
-			return
-		}
-
-		err = nc.Publish(stateTopic, data)
-		if err != nil {
-			log.Error().Err(err).Msg("nats publish to " + stateTopic)
-		}
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("nats subscribe to " + commandTopic)
 	}
 
-	err = announce(ctx, hal, nc)
-	if err != nil {
-		log.Error().Err(err).Msg("homeassistant announce")
-	}
+	h.announceAll(ctx)
 }
 
-func announce(ctx context.Context, hal pb.HalClient, nc *nats.Conn) error {
-	list, err := hal.GetLedEffects(ctx, &emptypb.Empty{})
-	if err != nil {
-		return err
+func (h *HomeAssistant) HandleEvent(event *pb.Event) {
+	for _, d := range h.devices {
+		if err := d.handleEvent(event, h.nc); err != nil {
+			log.Error().Err(err).Msgf("homeassistant handleEvent: %s", d)
+		}
 	}
-
-	cfg := config{
-		Name:                hostname,
-		UniqueId:            uniqueId,
-		CommandTopic:        strings.ReplaceAll(commandTopic, ".", "/"),
-		StateTopic:          strings.ReplaceAll(stateTopic, ".", "/"),
-		Schema:              "json",
-		Brightness:          true,
-		Effect:              true,
-		ColorMode:           true,
-		SupportedColorModes: []string{"rgb"},
-		EffectList:          list.Effects,
-	}
-	data, err := json.Marshal(&cfg)
-	if err != nil {
-		return err
-	}
-
-	return nc.Publish(announceTopic, data)
-}
-
-func (c color) uint32() uint32 {
-	return uint32(c.R&0xff)<<16 | uint32(c.G&0xff)<<8 | uint32(c.B&0xff)
-}
-
-func (c command) ledState() *pb.LedState {
-	s := pb.LedState{Effect: c.Effect}
-	if c.State != nil {
-		state := *c.State == stateOn
-		s.State = &state
-	}
-	if c.Brightness != nil {
-		brightness := uint32(*c.Brightness)
-		s.Brightness = &brightness
-	}
-	if c.Color != nil {
-		color := c.Color.uint32()
-		s.Color = &color
-	}
-	return &s
 }

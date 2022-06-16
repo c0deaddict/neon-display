@@ -73,11 +73,12 @@ func (d *Display) Run(ctx context.Context) {
 	nc, err := nats_helper.Connect(&d.config.Nats)
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect to nats")
-	} else {
-		defer nc.Close()
-		// Setup subscriptions for LEDs handling.
-		homeassistant.Start(ctx, d.hal, nc)
 	}
+	defer nc.Close()
+
+	// Setup subscriptions for LEDs handling.
+	ha := homeassistant.New(d.hal, nc)
+	ha.Start(context.Background())
 
 	// Start webserver.
 	err = d.startWebserver()
@@ -104,6 +105,7 @@ func (d *Display) Run(ctx context.Context) {
 			}
 
 			d.handleEvent(event)
+			ha.HandleEvent(event)
 		}
 	}
 }
@@ -162,7 +164,6 @@ func (d *Display) handleEvent(event *pb.Event) {
 
 	switch event.Source {
 	case pb.EventSource_Pir:
-		// TODO: send message to homeassistant (for pir sensor).
 		if event.State {
 			color := "red"
 			d.showMessage(ws_proto.ShowMessage{

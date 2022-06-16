@@ -53,7 +53,7 @@ func Connect(config *Config) (*nats.Conn, error) {
 	}))
 	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
 		up.Set(1)
-		log.Info().Msgf("Nats got reconnected to %v\n", nc.ConnectedUrl())
+		log.Info().Msgf("Nats got reconnected to %v", nc.ConnectedUrl())
 	}))
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
 		up.Set(0)
@@ -64,6 +64,8 @@ func Connect(config *Config) (*nats.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Info().Msgf("Connected to nats: %v", nc.ConnectedUrl())
 
 	up.Set(1)
 
@@ -81,7 +83,7 @@ func readPassword(config *Config) (*string, error) {
 	}
 
 	if info.Mode()&0o077 != 0 {
-		log.Warn().Msgf("Warning: permissions are too open on %v\n", *config.PasswordFile)
+		log.Warn().Msgf("Warning: permissions are too open on %v", *config.PasswordFile)
 	}
 
 	if password, err := readFirstLine(*config.PasswordFile); err != nil {
