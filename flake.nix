@@ -13,7 +13,8 @@
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
-    in {
+    in
+    {
       overlay = final: prev:
         import ./nix/pkgs/default.nix {
           pkgs = final;
@@ -29,5 +30,23 @@
         });
       defaultPackage =
         forAllSystems (system: self.packages.${system}.neon-display);
+
+      devShells = forAllSystems (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = pkgs.mkShell {
+            nativeBuildInputs = [ pkgs.bashInteractive ];
+            buildInputs = with pkgs; [
+              nodejs-14_x
+              esbuild
+              protobuf
+              protoc-gen-go
+              protoc-gen-go-grpc
+              exiftool
+            ];
+          };
+        });
     };
 }
