@@ -2,11 +2,11 @@
 
 buildGoModule rec {
   name = "neon-display";
-  version = "0.0.2";
+  version = "0.0.3";
 
   src = ../..;
 
-  vendorSha256 = "sha256-F5IcsUa/CFTkf7rMseIeisdfGJKLjMYuLyJH+409g4M=";
+  vendorSha256 = "sha256-N7HUSNCI2xE4WhPailHCfahUxtmFh6zMH0rYL99JjE8=";
 
   propagatedBuildInputs = [ rpi_ws281x ];
 
