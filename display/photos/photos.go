@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/c0deaddict/neon-display/display/ws_proto"
-	"github.com/rs/zerolog/log"
 )
 
 type PhotoAlbum struct {
@@ -51,10 +50,12 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 	for _, file := range files {
 		if file.Type().IsRegular() {
 			filename := path.Join(p.path, file.Name())
-			tags, err := readExif(filename, path.Join(p.cachePath, "exif"))
-			if err != nil {
-				log.Error().Err(err).Msg("read exif")
-			}
+			//// Reading EXIF information is too slow on the Pi.
+			// tags, err := readExif(filename, path.Join(p.cachePath, "exif"))
+			// if err != nil {
+			// 	log.Error().Err(err).Msg("read exif")
+			// }
+			var tags map[string]interface{}
 
 			p := ws_proto.Photo{
 				ImagePath: fmt.Sprintf("%s/%s", p.title, file.Name()),
