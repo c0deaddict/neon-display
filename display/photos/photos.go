@@ -49,8 +49,8 @@ func (p PhotoAlbum) readPhotos() ([]ws_proto.Photo, error) {
 	photos := make([]ws_proto.Photo, 0)
 	for _, file := range files {
 		if file.Type().IsRegular() {
-			filename := path.Join(p.path, file.Name())
 			//// Reading EXIF information is too slow on the Pi.
+			// filename := path.Join(p.path, file.Name())
 			// tags, err := readExif(filename, path.Join(p.cachePath, "exif"))
 			// if err != nil {
 			// 	log.Error().Err(err).Msg("read exif")

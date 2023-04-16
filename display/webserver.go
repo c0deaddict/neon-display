@@ -3,11 +3,9 @@ package display
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"path"
 	"strconv"
-	"time"
 
 	"net/http"
 
@@ -15,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/c0deaddict/neon-display/display/ws_proto"
@@ -46,18 +43,7 @@ func (d *Display) startWebserver() error {
 	r.Use(gin.Recovery()) // 500 on panics
 
 	// Log requests to zerolog.
-	r.Use(logger.SetLogger(logger.WithLogger(func(c *gin.Context, out io.Writer, latency time.Duration) zerolog.Logger {
-		return log.Logger.
-			With().
-			Timestamp().
-			Int("status", c.Writer.Status()).
-			Str("method", c.Request.Method).
-			Str("path", c.Request.URL.Path).
-			Str("ip", c.ClientIP()).
-			Dur("latency", latency).
-			Str("user_agent", c.Request.UserAgent()).
-			Logger()
-	})))
+	r.Use(logger.SetLogger())
 
 	if d.config.PhotosPath != "" {
 		r.StaticFS("/photo", http.Dir(d.config.PhotosPath))
@@ -122,7 +108,7 @@ func (d *Display) startWebserver() error {
 	return nil
 }
 
-/// Fake a HAL event.
+// / Fake a HAL event.
 func (d *Display) triggerEvent(c *gin.Context) {
 	switch c.Param("name") {
 	case "motion":
@@ -292,7 +278,7 @@ func (d *Display) showContentOnClient(c client) {
 	}
 }
 
-/// Requires d.mu.Lock to be held to prevent more than one websocket writer being active at any time.
+// / Requires d.mu.Lock to be held to prevent more than one websocket writer being active at any time.
 func (d *Display) sendMessage(msg ws_proto.ServerMessage) error {
 	for _, c := range d.clients {
 		err := c.WriteJSON(msg)
