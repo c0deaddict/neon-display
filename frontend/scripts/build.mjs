@@ -1,5 +1,5 @@
 import esbuild from "esbuild";
-import liveServer from "live-server";
+// import liveServer from "live-server";
 import fs from "fs/promises";
 
 import indexHtmlPlugin from "./index-html-plugin.mjs";
@@ -52,11 +52,12 @@ for (var arg of process.argv.slice(2)) {
 
 await esbuild.build(options);
 
-if (serve) {
-  liveServer.start({
-    port: 3000,
-    host: "127.0.0.1",
-    root: options.outdir,
-    open: false,
-  });
-}
+// TODO: liveServer can't be build with npmlock2nix, find a different lib to do this.
+// if (serve) {
+//   liveServer.start({
+//     port: 3000,
+//     host: "127.0.0.1",
+//     root: options.outdir,
+//     open: false,
+//   });
+// }

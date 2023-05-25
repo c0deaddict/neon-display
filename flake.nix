@@ -39,7 +39,7 @@
           default = pkgs.mkShell {
             nativeBuildInputs = [ pkgs.bashInteractive ];
             buildInputs = with pkgs; [
-              nodejs-14_x
+              nodejs
               esbuild
               protobuf
               protoc-gen-go
