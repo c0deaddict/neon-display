@@ -1,6 +1,6 @@
 module github.com/c0deaddict/neon-display
 
-go 1.18
+go 1.21
 
 require (
 	github.com/gin-contrib/logger v0.2.5

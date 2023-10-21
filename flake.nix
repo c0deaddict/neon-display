@@ -39,6 +39,7 @@
           default = pkgs.mkShell {
             nativeBuildInputs = [ pkgs.bashInteractive ];
             buildInputs = with pkgs; [
+              go_1_21
               nodejs
               esbuild
               protobuf
