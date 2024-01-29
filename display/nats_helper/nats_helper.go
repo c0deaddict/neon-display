@@ -33,7 +33,7 @@ var (
 	})
 )
 
-func Connect(config *Config) (*nats.Conn, error) {
+func Connect(clientName string, config *Config) (*nats.Conn, error) {
 	var opts []nats.Option
 	if config.Username != nil && *config.Username != "" {
 		password, err := readPassword(config)
@@ -42,6 +42,9 @@ func Connect(config *Config) (*nats.Conn, error) {
 		}
 		opts = append(opts, nats.UserInfo(*config.Username, *password))
 	}
+
+	// Set the client name.
+	opts = append(opts, nats.Name(clientName))
 
 	// Try to reconnect every 2 seconds, forever.
 	opts = append(opts, nats.MaxReconnects(-1))

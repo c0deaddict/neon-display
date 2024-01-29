@@ -2,6 +2,7 @@ package display
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -10,6 +11,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/c0deaddict/neon-display/display/homeassistant"
@@ -59,9 +61,14 @@ func (d *Display) Run(ctx context.Context) {
 	// Connect to the HAL.
 	conn, err := grpc.Dial(
 		d.config.HalSocketPath,
-		grpc.WithInsecure(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			d := net.Dialer{}
+			c, err := d.DialContext(ctx, "unix", addr)
+			if err != nil {
+				return nil, fmt.Errorf("connecto to unix://%s failed: %v", addr, err)
+			}
+			return c, nil
 		}))
 	if err != nil {
 		log.Fatal().Err(err).Msg("grpc unix dial")
@@ -70,7 +77,7 @@ func (d *Display) Run(ctx context.Context) {
 	d.hal = pb.NewHalClient(conn)
 
 	// Connect to NATS.
-	nc, err := nats_helper.Connect(&d.config.Nats)
+	nc, err := nats_helper.Connect("neon-display", &d.config.Nats)
 	if err != nil {
 		log.Fatal().Err(err).Msg("connect to nats")
 	}

@@ -6,7 +6,7 @@ buildGoModule rec {
 
   src = ../..;
 
-  vendorSha256 = "sha256-qux8TKADfUpd4JFDzWNM/NxC8kS8QcbIM8F6XUFLkbQ=";
+  vendorSha256 = "sha256-ME6DOdGQF4xTqxknCb1mcFPxO8M9XzlPqfMs2gFgTAI=";
 
   propagatedBuildInputs = [ rpi_ws281x ];
 
