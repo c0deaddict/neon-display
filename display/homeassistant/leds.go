@@ -120,7 +120,7 @@ func (l *ledsDevice) subscribe(ctx context.Context, nc *nats.Conn) error {
 		}
 	})
 	if err != nil {
-		return fmt.Errorf("nats subscribe to %s: %v", l.commandTopic, err)
+		return fmt.Errorf("nats subscribe to %s: %v", l.commandTopic(), err)
 	}
 	return nil
 }
