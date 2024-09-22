@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/warthog618/gpiod"
-	"github.com/warthog618/gpiod/device/rpi"
+	gpiod "github.com/warthog618/go-gpiocdev"
+	"github.com/warthog618/go-gpiocdev/device/rpi"
 
 	pb "github.com/c0deaddict/neon-display/hal_proto"
 )
