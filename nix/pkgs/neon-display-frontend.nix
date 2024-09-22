@@ -1,26 +1,14 @@
-{ lib, npmlock2nix, nodejs, esbuild, moreutils, jq }:
+{ lib, buildNpmPackage, nix-gitignore, moreutils, jq }:
 
-npmlock2nix.v2.build {
-  src = lib.cleanSource ../../frontend;
-  inherit nodejs;
+buildNpmPackage {
+  pname = "neon-display-frontend";
+  version = "0.0.4";
+  src = nix-gitignore.gitignoreSource [ ] ../../frontend;
 
-  buildCommands = [ "npm run build" ];
+  npmDepsHash = "sha256-ce8vuwZ41csqVR1C1IW5Pwg69/nNC64qUqnZRuvvwfE=";
+
+  buildCommands = ["npm run build"];
   installPhase = ''
     cp -r dist $out
   '';
-
-  node_modules_attrs = {
-    sourceOverrides.esbuild = sourceInfo: drv: drv.overrideAttrs(old: {
-      nativeBuildInputs = [ jq moreutils ];
-      postPatch = ''
-        jq "del(.scripts.postinstall)" package.json \
-           | jq "del(.optionalDependencies)" \
-           | sponge package.json
-        rm bin/esbuild
-      '';
-      postInstall = ''
-        ln -sf ${esbuild}/bin/esbuild bin/esbuild
-      '';
-    });
-  };
 }

@@ -1,12 +1,12 @@
-{ lib, buildGoModule, rpi_ws281x, neon-display-frontend }:
+{ lib, buildGoModule, nix-gitignore, rpi_ws281x, neon-display-frontend }:
 
 buildGoModule rec {
   name = "neon-display";
-  version = "0.0.3";
+  version = "0.0.4";
 
-  src = ../..;
+  src = nix-gitignore.gitignoreSource [ ] ../..;
 
-  vendorHash = "sha256-ME6DOdGQF4xTqxknCb1mcFPxO8M9XzlPqfMs2gFgTAI=";
+  vendorHash = "sha256-N1FbYuNAw5YayQKwlUNjhFlJwSapqdMDn/OkTw/HzU8=";
 
   propagatedBuildInputs = [ rpi_ws281x ];
 
