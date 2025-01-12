@@ -2,7 +2,7 @@
   description = "Digital signage for Raspberry Pi";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
   };
 
   outputs = inputs@{ self, nixpkgs, ... }:
@@ -29,7 +29,7 @@
           default = pkgs.mkShell {
             nativeBuildInputs = [ pkgs.bashInteractive ];
             buildInputs = with pkgs; [
-              go_1_21
+              go_1_23
               nodejs
               esbuild
               protobuf

@@ -22,8 +22,8 @@ func New(hal pb.HalClient, nc *nats.Conn) *HomeAssistant {
 	devices := []device{
 		newLedsDevice(hal, hostname, "leds"),
 		newPirDevice(hostname, "pir"),
-		newButtonDevice(hostname, "push-button red", pb.EventSource_RedButton),
-		newButtonDevice(hostname, "push-button yellow", pb.EventSource_YellowButton),
+		newButtonDevice(hostname, "push-button-red", pb.EventSource_RedButton),
+		newButtonDevice(hostname, "push-button-yellow", pb.EventSource_YellowButton),
 	}
 	return &HomeAssistant{hal, nc, devices}
 }

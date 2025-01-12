@@ -25,16 +25,6 @@ in {
 
     browser = mkOption {
       type = types.str;
-      # Firefox hardware acceleration is not working properly on Raspberry
-      # Pi's. Without it Grafana is way too heavy, pushing the CPU temperature
-      # over the limit of 85C.
-      #
-      # Chromium is run in XWayland. Ozone with --use-gl does not work
-      # currently.  These flags are used to enable HW acceleration on Raspberry
-      # Pi's.
-      #
-      # Video acceleration is not working yet, Chromium needs to be compiled
-      # with V4L2 which is not enabled by default.
       default = let
         flags = [
           "--ignore-gpu-blocklist"
@@ -42,12 +32,12 @@ in {
           "--enable-zero-copy"
           "--enable-drdc"
           "--canvas-oop-rasterization"
-          "--enable-accelerated-video-decode"
-          "--use-gl=egl"
           "--enable-features=VaapiVideoDecoder"
-          "--disable-features=UseChromeOSDirectVideoDecoder"
+          "--ozone-platform=wayland"
           "--remote-debugging-port=9222"
           "--kiosk"
+          "--disable-infobars"
+          "--noerrdialogs"
         ];
       in "${pkgs.ungoogled-chromium}/bin/chromium ${
         concatStringsSep " " flags

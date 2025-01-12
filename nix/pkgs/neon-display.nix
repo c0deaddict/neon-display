@@ -2,11 +2,11 @@
 
 buildGoModule rec {
   name = "neon-display";
-  version = "0.0.4";
+  version = "0.0.5";
 
   src = nix-gitignore.gitignoreSource [ ] ../..;
 
-  vendorHash = "sha256-N1FbYuNAw5YayQKwlUNjhFlJwSapqdMDn/OkTw/HzU8=";
+  vendorHash = "sha256-HCJVaEzS8yRpJ/UwJxpbNV7xqPZO0IjLwaCXVodVemg=";
 
   propagatedBuildInputs = [ rpi_ws281x ];
 
