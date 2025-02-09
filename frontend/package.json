@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "description": "Frontend for neon-display",
   "main": "app.jsx",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "minify": "npm run build -- --minify",
@@ -17,6 +24,6 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "esbuild": "^0.23.0"
+    "esbuild": "^0.23.1"
   }
 }

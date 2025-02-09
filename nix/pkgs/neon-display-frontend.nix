@@ -5,7 +5,7 @@ buildNpmPackage {
   version = "0.0.5";
   src = nix-gitignore.gitignoreSource [ ] ../../frontend;
 
-  npmDepsHash = "sha256-l4h1LDIG0rBCGOgkckrKQkbzV3wA5JJp9YnSQP660XI=";
+  npmDepsHash = "sha256-xxJrOmj0JZ2sZV8hqaBX/ZESicmGjkhN7Dd6Ugx3krA=";
 
   buildCommands = ["npm run build"];
   installPhase = ''
