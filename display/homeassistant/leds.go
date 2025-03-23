@@ -78,6 +78,7 @@ func newLedsDevice(hal pb.HalClient, hostname string, id string) *ledsDevice {
 }
 
 func (l *ledsDevice) subscribe(ctx context.Context, nc *nats.Conn) error {
+	// TODO: resubscribe when nats connection is lost
 	_, err := nc.Subscribe(l.commandTopic(), func(msg *nats.Msg) {
 		var command command
 		err := json.Unmarshal(msg.Data, &command)
