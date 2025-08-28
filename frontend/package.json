@@ -20,10 +20,10 @@
   "author": "Jos van Bakel",
   "license": "MIT",
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "esbuild": "^0.23.1"
+    "esbuild": "^0.25.9"
   }
 }
