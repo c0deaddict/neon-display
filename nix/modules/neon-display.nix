@@ -9,7 +9,8 @@ let
   format = pkgs.formats.json { };
   configFile = format.generate "config.json" cfg.settings;
 
-in {
+in
+{
   options.services.neon-display = {
     enable = mkEnableOption "neon-display";
 
@@ -25,21 +26,23 @@ in {
 
     browser = mkOption {
       type = types.str;
-      default = let
-        flags = [
-          "--ignore-gpu-blocklist"
-          "--enable-gpu-rasterization"
-          "--enable-zero-copy"
-          "--enable-drdc"
-          "--canvas-oop-rasterization"
-          "--enable-features=VaapiVideoDecoder"
-          "--ozone-platform=wayland"
-          "--remote-debugging-port=9222"
-          "--kiosk"
-          "--disable-infobars"
-          "--noerrdialogs"
-        ];
-      in "${pkgs.ungoogled-chromium}/bin/chromium ${
+      default =
+        let
+          flags = [
+            "--ignore-gpu-blocklist"
+            "--enable-gpu-rasterization"
+            "--enable-zero-copy"
+            "--enable-drdc"
+            "--canvas-oop-rasterization"
+            "--enable-features=VaapiVideoDecoder"
+            "--ozone-platform=wayland"
+            "--remote-debugging-port=9222"
+            "--kiosk"
+            "--disable-infobars"
+            "--noerrdialogs"
+          ];
+        in
+        "${pkgs.ungoogled-chromium}/bin/chromium ${
         concatStringsSep " " flags
       }";
       example = literalExpression ''"''${pkgs.firefox}/bin/firefox -kiosk"'';
@@ -67,8 +70,7 @@ in {
     services.cage = {
       enable = true;
       inherit (cfg) user;
-      program =
-        "${cfg.browser} http://localhost:${toString cfg.settings.web_port}";
+      program = "${cfg.browser} http://localhost:${toString cfg.settings.web_port}";
     };
 
     # Hide the cursor if no input devices are connected.

@@ -6,7 +6,7 @@ buildGoModule rec {
 
   src = nix-gitignore.gitignoreSource [ ] ../..;
 
-  vendorHash = "sha256-UKsOqtIu3w5tC5+zOawiraiJ/SOlnSxsFz4632gcxmw=";
+  vendorHash = "sha256-TbzNlHMx8Hx99lFhXLYTfkJg7XbkTkEL6aqKrxSe1Z8=";
 
   propagatedBuildInputs = [ rpi_ws281x ];
 
