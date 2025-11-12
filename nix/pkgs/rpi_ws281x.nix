@@ -11,7 +11,7 @@ stdenv.mkDerivation rec {
     sha256 = "sha256-Push5DMNNoTUHudMZxI7OYhaKSqbckWj5v1Jnf0ltms=";
   };
 
-  cmakeFlags = [ "-DBUILD_SHARED=off" "-DBUILD_TEST=off" ];
+  cmakeFlags = [ "-DBUILD_SHARED=off" "-DBUILD_TEST=off" "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" ];
 
   nativeBuildInputs = [ cmake ];
 
