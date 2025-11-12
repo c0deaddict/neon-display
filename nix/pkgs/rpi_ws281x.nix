@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation rec {
   name = "rpi_ws281x";
-  version = "4b41a83c6aeb945cd7cdf6e1b4f764f4943f4b1f";
+  version = "1.0.0";
 
   src = fetchFromGitHub {
     owner = "jgarff";
     repo = name;
-    rev = version;
-    sha256 = "sha256-b+xFG1OAx1n7kHYgOecj4CyLgpjKTT+D1rphSaxzH/g=";
+    rev = "v${version}";
+    sha256 = "sha256-Push5DMNNoTUHudMZxI7OYhaKSqbckWj5v1Jnf0ltms=";
   };
 
   cmakeFlags = [ "-DBUILD_SHARED=off" "-DBUILD_TEST=off" ];
